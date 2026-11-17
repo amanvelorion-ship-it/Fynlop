@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
-import FeaturedProducts from "../components/FeaturedProducts";
+import FeaturedCollections from "../components/FeaturedCollections";
 
 export default function Home() {
   return (
@@ -14,11 +14,11 @@ export default function Home() {
             <h1><Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={1500} height={480} priority /></h1>
             <p className="hero-tagline">Stories Beyond Reality</p>
             <p className="hero-description">
-              Step into a universe of bold comics and books, imagined by independent creators and made for curious minds.
+              Subscribe to ongoing story worlds and get every release in each collection as it arrives.
             </p>
             <div className="hero-actions">
-              <Link className="button button-gold" href="/shop?category=Comics">Explore comics <ArrowUpRight aria-hidden="true" size={16} /></Link>
-              <Link className="hero-secondary" href="/shop?category=Books">Browse books <ArrowRight aria-hidden="true" size={16} /></Link>
+              <Link className="button button-gold" href="/shop">Explore collections <ArrowUpRight aria-hidden="true" size={16} /></Link>
+              <Link className="hero-secondary" href="/my-library">My subscriptions <ArrowRight aria-hidden="true" size={16} /></Link>
             </div>
           </div>
           <div className="hero-art" aria-hidden="true">
@@ -39,12 +39,12 @@ export default function Home() {
         <div className="section-heading">
           <div>
             <p className="eyebrow"><span className="eyebrow-mark" /> THE FYNLOP EDIT</p>
-            <h2 id="featured-title">Worlds to <em>get lost in.</em></h2>
+            <h2 id="featured-title">Worlds to <em>return to.</em></h2>
           </div>
-          <Link className="text-link" href="/shop">Explore the collection <ArrowUpRight aria-hidden="true" size={16} /></Link>
+          <Link className="text-link" href="/shop">Browse all collections <ArrowUpRight aria-hidden="true" size={16} /></Link>
         </div>
         <Suspense fallback={<p className="checkout-help">Loading the collection…</p>}>
-          <FeaturedProducts />
+          <FeaturedCollections />
         </Suspense>
       </section>
 

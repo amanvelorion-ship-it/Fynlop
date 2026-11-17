@@ -3,6 +3,15 @@ export type InrUsdRate = {
   date: string;
 };
 
+export function formatInrPaise(amountPaise: number): string {
+  if (!Number.isSafeInteger(amountPaise) || amountPaise < 0) {
+    throw new Error("Collection prices must be a non-negative integer number of paise.");
+  }
+  const rupees = Math.floor(amountPaise / 100);
+  const paise = amountPaise % 100;
+  return `₹${rupees.toLocaleString("en-IN")}.${String(paise).padStart(2, "0")}`;
+}
+
 export function formatAdminMoney(amountInr: number, rate: InrUsdRate | null): string {
   if (!rate) {
     return `INR ${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amountInr)}`;

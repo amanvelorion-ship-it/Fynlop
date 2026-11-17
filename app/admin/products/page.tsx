@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import AdminPageHeader from "../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../components/admin/AdminShell";
 import ProductsTable from "../../../components/admin/ProductsTable";
@@ -12,10 +10,9 @@ export default async function AdminProductsPage() {
   return (
     <AdminShell>
       <AdminPageHeader
-        eyebrow="CATALOG"
-        title="Products"
-        description={`${products.length} stories in your catalog`}
-        action={<Link className="admin-button admin-button-primary" href="/admin/products/new"><Plus size={15} /> Add product</Link>}
+        eyebrow="ARCHIVE"
+        title="Legacy editions"
+        description={`${products.length} editions from the retired one-time checkout model. New releases belong to a collection.`}
       />
       <ProductsTable products={products} />
     </AdminShell>

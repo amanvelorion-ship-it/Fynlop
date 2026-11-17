@@ -1,29 +1,15 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import ShopCatalog from "../../components/ShopCatalog";
-import { getProducts } from "../../lib/products";
+import CollectionCatalog from "../../components/CollectionCatalog";
+import { getPublishedCollections } from "../../lib/collection-catalog";
 
-type Category = "All" | "Comics" | "Books" | "Manga";
-
-async function ShopContent({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
+async function ShopContent() {
   await connection();
-  const { category } = await searchParams;
-  const initialCategory: Category =
-    category === "Comics" || category === "Books" || category === "Manga"
-      ? category
-      : "All";
-
-  const products = await getProducts();
-  return <ShopCatalog initialCategory={initialCategory} products={products} />;
+  const collections = await getPublishedCollections();
+  return <CollectionCatalog collections={collections} />;
 }
 
-export default function ShopPage(props: {
-  searchParams: Promise<{ category?: string }>;
-}) {
+export default function ShopPage() {
   return (
     <Suspense
       fallback={
@@ -32,7 +18,7 @@ export default function ShopPage(props: {
         </main>
       }
     >
-      <ShopContent searchParams={props.searchParams} />
+      <ShopContent />
     </Suspense>
   );
 }

@@ -12,6 +12,8 @@ export default function SettingsForm({
   testSecretConfigured,
   liveKeyId,
   liveSecretConfigured,
+  testWebhookConfigured,
+  liveWebhookConfigured,
 }: {
   settings: AdminSettings;
   keyId: string | null;
@@ -20,6 +22,8 @@ export default function SettingsForm({
   testSecretConfigured: boolean;
   liveKeyId: string | null;
   liveSecretConfigured: boolean;
+  testWebhookConfigured: boolean;
+  liveWebhookConfigured: boolean;
 }) {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(saveAdminSettings, {});
   const [mode, setMode] = useState(settings.razorpay_mode);
@@ -51,6 +55,10 @@ export default function SettingsForm({
       <p className="admin-muted" id="razorpay-env-note">
         {activeSecretConfigured ? "Credentials are configured for this mode." : "Credentials for this mode are not configured."}
         {" "}Payment secrets stay in server environment variables and are never saved in the database.
+      </p>
+      <p className="admin-muted">
+        Subscription webhooks: test {testWebhookConfigured ? "configured" : "not configured"} · live {liveWebhookConfigured ? "configured" : "not configured"}.
+        Set <code>RAZORPAY_TEST_WEBHOOK_SECRET</code> and <code>RAZORPAY_LIVE_WEBHOOK_SECRET</code> in server environment variables, then configure Razorpay to send subscription events to <code>https://www.fynlop.com/api/webhooks/razorpay</code>.
       </p>
       {state.error && <p className="admin-error" role="alert">{state.error}</p>}
       {state.success && <p className="admin-message" role="status">{state.success}</p>}

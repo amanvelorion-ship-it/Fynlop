@@ -10,21 +10,26 @@ A digital comics and books storefront built with Next.js, TypeScript, AWS, Razor
 4. Follow the SES verification email before sending store mail.
 5. Start the app with `npm run dev`. Register the `ADMIN_EMAIL` address at `/my-library`, verify it using the emailed code, then sign in to `/admin`.
 
-The setup script grants public object reads only for `covers/`, `previews/`, and `logos/`; uploaded PDFs remain private and are served through short-lived signed URLs after purchase verification. Product data, users, orders, and store settings are stored in DynamoDB.
+The setup script grants public object reads only for `covers/`, `previews/`, and `logos/`; uploaded PDFs remain private and are served through short-lived signed URLs after purchase verification. Collections and release metadata share the products table. Historical purchases, recurring subscription records, webhook idempotency markers, and billing history share the orders table using separate partition-key prefixes.
 
 ## Payments
 
-Checkout uses Razorpay. Keep `NEXT_PUBLIC_RAZORPAY_MODE=test` until you are ready for live transactions. Test mode uses `NEXT_PUBLIC_RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (or the optional `RAZORPAY_TEST_KEY_ID` / `RAZORPAY_TEST_KEY_SECRET` pair); live mode uses `RAZORPAY_LIVE_KEY_ID` and `RAZORPAY_LIVE_KEY_SECRET`. Secret keys are server-only and are never saved in DynamoDB.
+Collection subscriptions use Razorpay Plans and Subscriptions. Keep `NEXT_PUBLIC_RAZORPAY_MODE=test` until you are ready for live transactions. Test mode uses `NEXT_PUBLIC_RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (or the optional `RAZORPAY_TEST_KEY_ID` / `RAZORPAY_TEST_KEY_SECRET` pair); live mode uses `RAZORPAY_LIVE_KEY_ID` and `RAZORPAY_LIVE_KEY_SECRET`. Secret keys are server-only and are never saved in DynamoDB.
+
+Configure `RAZORPAY_TEST_WEBHOOK_SECRET` and `RAZORPAY_LIVE_WEBHOOK_SECRET` as server environment variables. In the Razorpay Dashboard, register `https://www.fynlop.com/api/webhooks/razorpay` and subscribe to `subscription.authenticated`, `subscription.activated`, `subscription.charged`, `subscription.pending`, `subscription.halted`, `subscription.cancelled`, `subscription.completed`, and `subscription.expired`. Webhook signatures are verified before any billing or access state is changed.
+
+Razorpay subscriptions are created for 120 monthly cycles (10 years, its documented maximum term). Customers receive a notice at completion and must authorize a new subscription to continue. Collection price changes create a new plan for future subscribers; existing subscriptions retain their already-authorized plan price.
 
 ## Included flows
 
-- Browse, search, filter, sort, and view products stored in DynamoDB.
-- Create products in the admin panel and upload cover art, previews, and private PDF editions to S3.
-- Register and sign in with Amazon Cognito, then view paid purchases in My Library.
-- Verify Razorpay payments on the server and issue expiring S3 download links to verified purchasers.
-- Manage products, customers, orders/refunds, analytics, and store settings from the admin panel.
+- Browse and search monthly collections.
+- Create collections, set monthly prices, and upload or schedule private PDF chapters, episodes, issues, and volumes from `/admin/collections`.
+- Subscribe to multiple collections independently, cancel renewals, view billing history, and retain access through the paid period.
+- Verify checkout signatures and recurring payment webhooks on the server; issue expiring S3 download links only to subscribers with paid access.
+- Preserve access to editions purchased before the collection subscription model; individual sales are no longer available.
+- Manage collections, subscribers, recurring payment refunds, customers, historical orders, analytics, and store settings from the admin panel.
 
-There are no seeded or sample products. Add real product records and files through `/admin/products` before customers can shop.
+There are no seeded or sample collections or releases. Add real content through `/admin/collections` before customers can subscribe.
 
 ## Checks
 

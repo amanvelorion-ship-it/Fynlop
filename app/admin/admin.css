@@ -830,3 +830,176 @@ body:has(.admin-login-page) .site-footer {
   .admin-form-grid .wide,
   .admin-settings-grid .wide { grid-column: auto; }
 }
+
+.collection-admin-summary {
+  margin: 18px 0 25px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+}
+
+.collection-admin-summary article {
+  min-width: 0;
+  padding: 15px;
+  display: grid;
+  gap: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  background: #111118;
+}
+
+.collection-admin-summary span {
+  color: #aaa6b4;
+  font-size: 9px;
+}
+
+.collection-admin-summary strong {
+  color: #ffb800;
+  font-size: 20px;
+}
+
+.collection-admin-list,
+.collection-admin-release-list,
+.collection-admin-subscriber-list {
+  display: grid;
+  gap: 10px;
+}
+
+.collection-admin-card {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  background: #111118;
+}
+
+.collection-admin-card:hover {
+  border-color: rgba(255, 184, 0, 0.45);
+}
+
+.collection-admin-card span:first-child,
+.collection-admin-release > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.collection-admin-card strong,
+.collection-admin-release strong,
+.collection-admin-subscriber strong {
+  color: #f5f2fa;
+  font-size: 12px;
+}
+
+.collection-admin-card small,
+.collection-admin-release small,
+.collection-admin-subscriber small {
+  color: #9692a0;
+  font-size: 9px;
+}
+
+.collection-admin-card > span:last-child {
+  color: #ffb800;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.collection-admin-section {
+  margin-top: 20px;
+}
+
+.collection-admin-release,
+.collection-admin-subscriber {
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.collection-admin-release p {
+  margin: 0;
+  color: #aaa6b4;
+  font-size: 10px;
+}
+
+.collection-content-actions {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 5px;
+}
+
+.collection-admin-subscriber {
+  display: block;
+}
+
+.collection-admin-subscriber header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.collection-admin-subscriber header > div {
+  display: grid;
+  gap: 6px;
+}
+
+.collection-admin-subscriber header > span {
+  color: #ffb800;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.collection-admin-subscriber details {
+  color: #aaa6b4;
+  font-size: 9px;
+}
+
+.collection-admin-subscriber details ul {
+  display: grid;
+  gap: 7px;
+}
+
+.collection-admin-subscriber details li {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-empty-state {
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  background: #111118;
+}
+
+.admin-empty-state h2 {
+  margin: 0 0 9px;
+  font-size: 15px;
+}
+
+.admin-empty-state p {
+  margin: 0;
+  color: #aaa6b4;
+  font-size: 10px;
+}
+
+@media (max-width: 620px) {
+  .collection-admin-card,
+  .collection-admin-release {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .collection-content-actions {
+    justify-items: start;
+  }
+
+  .collection-admin-subscriber details li {
+    grid-template-columns: 1fr 1fr;
+  }
+}

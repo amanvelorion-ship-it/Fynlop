@@ -24,3 +24,24 @@ export async function sendOrderConfirmation(
     }),
   );
 }
+
+export async function sendCollectionSubscriptionEnded(
+  recipient: string,
+  collectionTitle: string,
+): Promise<void> {
+  await ses.send(
+    new SendEmailCommand({
+      Source: requiredEnvironmentVariable("AWS_SES_FROM_EMAIL"),
+      Destination: { ToAddresses: [recipient] },
+      Message: {
+        Subject: { Data: `Your ${collectionTitle} subscription term has ended`, Charset: "UTF-8" },
+        Body: {
+          Text: {
+            Data: `Your 120-month ${collectionTitle} subscription has reached its end. To continue receiving new releases, please subscribe again and authorize a new recurring payment at https://www.fynlop.com/shop.\n\nFYNLOP`,
+            Charset: "UTF-8",
+          },
+        },
+      },
+    }),
+  );
+}

@@ -3,13 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Menu, ShoppingCart, X } from "lucide-react";
-import { readCart, subscribeToCart } from "../lib/cart";
+import { ArrowUpRight, Menu, X } from "lucide-react";
 
 type AuthResponse = { user?: { id: string; email: string } | null; error?: string };
 
 export default function Navbar() {
-  const [cartCount, setCartCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [accountStatus, setAccountStatus] = useState<"checking" | "signed-in" | "signed-out">("checking");
@@ -17,7 +15,6 @@ export default function Navbar() {
   useEffect(() => {
     let active = true;
     let authRequest = 0;
-    const updateCart = () => setCartCount(readCart().length);
     const updateScroll = () => setScrolled(window.scrollY > 24);
     const updateAuth = async () => {
       const requestId = ++authRequest;
@@ -36,16 +33,13 @@ export default function Navbar() {
     };
     const handleAuthChange = () => { void updateAuth(); };
 
-    updateCart();
     updateScroll();
     void updateAuth();
-    const unsubscribe = subscribeToCart(updateCart);
     window.addEventListener("scroll", updateScroll, { passive: true });
     window.addEventListener("fynlop-auth-change", handleAuthChange);
 
     return () => {
       active = false;
-      unsubscribe();
       window.removeEventListener("scroll", updateScroll);
       window.removeEventListener("fynlop-auth-change", handleAuthChange);
     };
@@ -53,7 +47,7 @@ export default function Navbar() {
 
   const links = [
     { href: "/", label: "Home" },
-    { href: "/shop", label: "Shop" },
+    { href: "/shop", label: "Collections" },
     { href: "/#about", label: "About" },
   ];
 
@@ -73,14 +67,6 @@ export default function Navbar() {
         </nav>
         <div className="nav-actions">
           <Link className="nav-library" href="/my-library">My library</Link>
-          <Link
-            className="cart-link"
-            href="/checkout"
-            aria-label={`Cart with ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
-          >
-            <ShoppingCart aria-hidden="true" size={21} strokeWidth={1.6} />
-            {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
-          </Link>
           <Link className="nav-account" href="/my-library">
             {accountStatus === "signed-out" ? "Sign in" : "Account"}
             <ArrowUpRight aria-hidden="true" size={14} />

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowDownToLine, ArrowRight, LoaderCircle, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
+import MyCollectionSubscriptions from "../../components/MyCollectionSubscriptions";
 import type { Product } from "../../types";
 
 type Account = { id: string; email: string };
@@ -198,38 +198,41 @@ export default function MyLibraryPage() {
           </div>
           {error && <p className="checkout-error" role="alert">{error}</p>}
           {notice && <p className="checkout-success" role="status">{notice}</p>}
+          <MyCollectionSubscriptions />
           {products.length ? (
-            <div className="library-list">
-              {products.map((product) => (
-                <article className="library-item" key={product.id}>
-                  <div
-                    className="library-cover"
-                    role="img"
-                    aria-label={`${product.title} cover`}
-                    style={{ backgroundImage: `url("${product.cover_image_url}")` }}
-                  />
-                  <div>
-                    <h2>{product.title}</h2>
-                    <p>{product.category} · by {product.author}</p>
-                    <button
-                      className="button button-gold"
-                      onClick={() => void downloadProduct(product.id)}
-                      disabled={downloading === product.id}
-                    >
-                      {downloading === product.id ? "Preparing download…" : "Download edition"}
-                      {downloading === product.id ? <LoaderCircle className="spin" size={16} /> : <ArrowDownToLine size={16} />}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="library-empty">
-              <h2>Your next favorite is waiting.</h2>
-              <p>Stories you purchase will be collected here for easy access.</p>
-              <Link className="button button-gold" href="/shop">Explore the shop <ArrowRight size={16} /></Link>
-            </div>
-          )}
+            <>
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow"><span className="eyebrow-mark" /> PREVIOUS PURCHASES</p>
+                  <h2>Legacy editions.</h2>
+                </div>
+              </div>
+              <div className="library-list">
+                {products.map((product) => (
+                  <article className="library-item" key={product.id}>
+                    <div
+                      className="library-cover"
+                      role="img"
+                      aria-label={`${product.title} cover`}
+                      style={{ backgroundImage: `url("${product.cover_image_url}")` }}
+                    />
+                    <div>
+                      <h2>{product.title}</h2>
+                      <p>{product.category} · by {product.author}</p>
+                      <button
+                        className="button button-gold"
+                        onClick={() => void downloadProduct(product.id)}
+                        disabled={downloading === product.id}
+                      >
+                        {downloading === product.id ? "Preparing download…" : "Download edition"}
+                        {downloading === product.id ? <LoaderCircle className="spin" size={16} /> : <ArrowDownToLine size={16} />}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : null}
         </section>
       ) : (
         <section className="auth-layout">
