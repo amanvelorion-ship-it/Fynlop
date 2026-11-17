@@ -3,8 +3,17 @@
 import { useMemo, useState, useTransition } from "react";
 import { refundOrder } from "../../app/admin/actions";
 import type { AdminOrder } from "../../lib/admin-data";
+import { formatAdminMoney, type InrUsdRate } from "../../lib/currency";
 
-export default function OrdersTable({ orders }: { orders: AdminOrder[] }) {
+export default function OrdersTable({
+  orders,
+  rate,
+  rateNotice,
+}: {
+  orders: AdminOrder[];
+  rate: InrUsdRate | null;
+  rateNotice: string;
+}) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [message, setMessage] = useState("");
@@ -28,6 +37,7 @@ export default function OrdersTable({ orders }: { orders: AdminOrder[] }) {
   return (
     <>
       <div className="admin-toolbar">
+        <span className="admin-muted" role={rate ? "note" : "alert"}>{rateNotice}</span>
         <input className="admin-input" placeholder="Search customer email..." value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search order email" />
         <select className="admin-select" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by order status">
           <option>All</option><option>paid</option><option value="created">pending</option><option>refunding</option><option>failed</option><option>refunded</option>
@@ -43,7 +53,7 @@ export default function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                 <td><strong>{order.id.slice(0, 8)}</strong></td>
                 <td>{order.email}</td>
                 <td>{order.product_title}</td>
-                <td>₹{order.amount.toLocaleString("en-IN")}</td>
+                <td>{formatAdminMoney(order.amount, rate)}</td>
                 <td><span className={`admin-badge admin-badge-${order.status}`}>{order.status === "created" ? "pending" : order.status}</span></td>
                 <td>{new Date(order.created_at).toLocaleDateString("en-IN")}</td>
                 <td>{order.status === "paid" ? <button className="admin-button admin-button-danger" disabled={pending} onClick={() => refund(order)}>Refund</button> : "—"}</td>

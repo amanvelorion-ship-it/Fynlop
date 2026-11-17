@@ -20,8 +20,8 @@ export default function ProductForm() {
             </select>
           </label>
           <label>Author<input className="admin-input" name="author" required maxLength={120} /></label>
-          <label>Price (INR)<input className="admin-input" name="price_inr" type="number" min="1" step="1" required /></label>
-          <label>Price (USD)<input className="admin-input" name="price_usd" type="number" min="0.01" step="0.01" required /></label>
+          <label>Checkout price (INR)<input className="admin-input" name="price_inr" type="number" min="1" step="1" required /></label>
+          <label>Catalog price (USD)<input className="admin-input" name="price_usd" type="number" min="0.01" step="0.01" required /></label>
           <label>Pages<input className="admin-input" name="pages" type="number" min="1" step="1" required /></label>
           <label className="admin-switch-row">
             <input type="checkbox" name="featured" />

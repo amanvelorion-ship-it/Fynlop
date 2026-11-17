@@ -68,7 +68,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>COVER</th><th>TITLE</th><th>CATEGORY</th><th>PRICE ₹</th><th>PRICE $</th><th>FEATURED</th><th>ACTIONS</th>
+              <th>COVER</th><th>TITLE</th><th>CATEGORY</th><th>PRICE (USD)</th><th>FEATURED</th><th>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +77,6 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                 <td><span className="admin-cover-thumb" style={{ backgroundImage: `url("${product.cover_image_url}")` }} /></td>
                 <td><strong>{product.title}</strong><br /><span className="admin-muted">{product.id}</span></td>
                 <td>{product.category}</td>
-                <td>₹{product.price_inr.toLocaleString("en-IN")}</td>
                 <td>${product.price_usd.toFixed(2)}</td>
                 <td>
                   <button
@@ -108,7 +107,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
               </tr>
             ))}
             {!visibleProducts.length && (
-              <tr><td colSpan={7} className="admin-empty">No products match this search.</td></tr>
+              <tr><td colSpan={6} className="admin-empty">No products match this search.</td></tr>
             )}
           </tbody>
         </table>
@@ -129,8 +128,8 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                 <label className="wide">Description<textarea className="admin-textarea" name="description" defaultValue={editing.description} required maxLength={5000} /></label>
                 <label>Category<select className="admin-select" name="category" defaultValue={editing.category}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
                 <label>Author<input className="admin-input" name="author" defaultValue={editing.author} /></label>
-                <label>Price (INR)<input className="admin-input" name="price_inr" type="number" min="1" step="1" defaultValue={editing.price_inr} required /></label>
-                <label>Price (USD)<input className="admin-input" name="price_usd" type="number" min="0.01" step="0.01" defaultValue={editing.price_usd} required /></label>
+                <label>Checkout price (INR)<input className="admin-input" name="price_inr" type="number" min="1" step="1" defaultValue={editing.price_inr} required /></label>
+                <label>Catalog price (USD)<input className="admin-input" name="price_usd" type="number" min="0.01" step="0.01" defaultValue={editing.price_usd} required /></label>
                 <label>Pages<input className="admin-input" name="pages" type="number" min="0" step="1" defaultValue={editing.pages} required /></label>
               </div>
               <div className="admin-modal-footer">

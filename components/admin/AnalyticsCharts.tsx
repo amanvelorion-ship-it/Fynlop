@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatAdminAxisMoney, formatAdminMoney, type InrUsdRate } from "../../lib/currency";
 
 type Point = { amount: number; status: string; created_at: string };
 type TopItem = { label: string; count: number; revenue: number };
@@ -41,10 +42,14 @@ export default function AnalyticsCharts({
   orders,
   topProducts,
   topCustomers,
+  rate,
+  rateNotice,
 }: {
   orders: Point[];
   topProducts: TopItem[];
   topCustomers: TopItem[];
+  rate: InrUsdRate | null;
+  rateNotice: string;
 }) {
   const [range, setRange] = useState<"daily" | "weekly" | "monthly">("daily");
   const chartData = useMemo(() => {
@@ -77,7 +82,7 @@ export default function AnalyticsCharts({
   return (
     <>
       <div className="admin-toolbar">
-        <span className="admin-muted">Paid orders only · all amounts in INR</span>
+        <span className="admin-muted" role={rate ? "note" : "alert"}>{rateNotice}</span>
         <select className="admin-select" value={range} onChange={(event) => setRange(event.target.value as typeof range)} aria-label="Analytics time range">
           <option value="daily">Daily · 30 days</option>
           <option value="weekly">Weekly · 12 weeks</option>
@@ -92,8 +97,8 @@ export default function AnalyticsCharts({
               <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,.07)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: "#85818f", fontSize: 9 }} axisLine={false} tickLine={false} minTickGap={20} />
-                <YAxis tick={{ fill: "#85818f", fontSize: 9 }} axisLine={false} tickLine={false} width={45} />
-                <Tooltip contentStyle={{ background: "#171720", border: "1px solid rgba(255,184,0,.25)", color: "#f8f6f1", fontSize: 10 }} formatter={(value) => [`₹${Number(value).toLocaleString("en-IN")}`, "Revenue"]} />
+                <YAxis tick={{ fill: "#85818f", fontSize: 9 }} axisLine={false} tickLine={false} width={55} tickFormatter={(value) => formatAdminAxisMoney(Number(value), rate)} />
+                <Tooltip contentStyle={{ background: "#171720", border: "1px solid rgba(255,184,0,.25)", color: "#f8f6f1", fontSize: 10 }} formatter={(value) => [formatAdminMoney(Number(value ?? 0), rate), "Revenue"]} />
                 <Line type="monotone" dataKey="revenue" stroke="#ffb800" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#7b2fff" }} />
               </LineChart>
             </ResponsiveContainer>
@@ -117,25 +122,25 @@ export default function AnalyticsCharts({
       <div className="admin-chart-grid">
         <section className="admin-panel">
           <div className="admin-panel-heading"><h2>Top 5 products</h2></div>
-          <TopList items={topProducts} empty="No product sales yet." />
+          <TopList items={topProducts} empty="No product sales yet." rate={rate} />
         </section>
         <section className="admin-panel">
           <div className="admin-panel-heading"><h2>Top 5 customers</h2></div>
-          <TopList items={topCustomers} empty="No customer sales yet." />
+          <TopList items={topCustomers} empty="No customer sales yet." rate={rate} />
         </section>
       </div>
     </>
   );
 }
 
-function TopList({ items, empty }: { items: TopItem[]; empty: string }) {
+function TopList({ items, empty, rate }: { items: TopItem[]; empty: string; rate: InrUsdRate | null }) {
   if (!items.length) return <p className="admin-empty">{empty}</p>;
   return (
     <div className="admin-list">
       {items.map((item, index) => (
         <div className="admin-list-row" key={`${item.label}-${index}`}>
           <span>{index + 1}. {item.label}<br /><small>{item.count} purchases</small></span>
-          <strong>₹{item.revenue.toLocaleString("en-IN")}</strong>
+          <strong>{formatAdminMoney(item.revenue, rate)}</strong>
         </div>
       ))}
     </div>

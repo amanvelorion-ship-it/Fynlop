@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { setUserBlocked } from "../../app/admin/actions";
+import { formatAdminMoney, type InrUsdRate } from "../../lib/currency";
 
 export type AdminUserRow = {
   id: string;
@@ -13,7 +14,15 @@ export type AdminUserRow = {
   history: { product: string; amount: number; status: string; date: string }[];
 };
 
-export default function UsersTable({ users }: { users: AdminUserRow[] }) {
+export default function UsersTable({
+  users,
+  rate,
+  rateNotice,
+}: {
+  users: AdminUserRow[];
+  rate: InrUsdRate | null;
+  rateNotice: string;
+}) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AdminUserRow | null>(null);
   const [message, setMessage] = useState("");
@@ -33,6 +42,7 @@ export default function UsersTable({ users }: { users: AdminUserRow[] }) {
   return (
     <>
       <div className="admin-toolbar">
+        <span className="admin-muted" role={rate ? "note" : "alert"}>{rateNotice}</span>
         <input className="admin-input" placeholder="Search by email..." value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search users by email" />
       </div>
       {message && <p className={message.startsWith("Could") ? "admin-error" : "admin-message"} role="status">{message}</p>}
@@ -67,7 +77,7 @@ export default function UsersTable({ users }: { users: AdminUserRow[] }) {
                 {selected.history.map((item, index) => (
                   <div className="admin-list-row" key={`${item.product}-${index}`}>
                     <span>{item.product}<br /><small>{new Date(item.date).toLocaleDateString("en-IN")} · {item.status}</small></span>
-                    <strong>₹{item.amount.toLocaleString("en-IN")}</strong>
+                    <strong>{formatAdminMoney(item.amount, rate)}</strong>
                   </div>
                 ))}
               </div>

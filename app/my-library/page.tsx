@@ -115,6 +115,7 @@ export default function MyLibraryPage() {
         const signedIn = await authenticate("sign-in");
         if (!signedIn.user) throw new Error(signedIn.error ?? "Email verified, but sign-in did not complete.");
         setUser(signedIn.user);
+        window.dispatchEvent(new Event("fynlop-auth-change"));
         await loadLibrary();
         setNotice("Your email is verified. Welcome to FYNLOP.");
         return;
@@ -131,6 +132,7 @@ export default function MyLibraryPage() {
       } else if (result.user) {
         setUser(result.user);
         setEmail(result.user.email);
+        window.dispatchEvent(new Event("fynlop-auth-change"));
         await loadLibrary();
         setNotice(mode === "sign-up" ? "Your account is ready." : "Welcome back.");
       } else {
@@ -169,6 +171,7 @@ export default function MyLibraryPage() {
       if (!response.ok) throw new Error("Could not sign out.");
       setUser(null);
       setProducts([]);
+      window.dispatchEvent(new Event("fynlop-auth-change"));
       setNotice("You have signed out.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not sign out.");
