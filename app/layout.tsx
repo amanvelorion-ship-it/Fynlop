@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fynlop — Independent Comics",
+  title: "FYNLOP — Stories Beyond Reality",
   description:
-    "Discover original digital comics from independent creators. Find your next favorite story at Fynlop.",
+    "Discover bold digital comics and books from independent creators. Find your next world at FYNLOP.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body>
+        <Navbar />
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }
