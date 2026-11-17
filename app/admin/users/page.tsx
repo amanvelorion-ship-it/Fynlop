@@ -2,7 +2,7 @@ import AdminPageHeader from "../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../components/admin/AdminShell";
 import UsersTable, { type AdminUserRow } from "../../../components/admin/UsersTable";
 import { fetchAdminOrders, fetchAdminUsers } from "../../../lib/admin-data";
-import { requireAdmin } from "../../../lib/supabase-server";
+import { requireAdmin } from "../../../lib/auth";
 
 export default async function AdminUsersPage() {
   await requireAdmin();
@@ -14,7 +14,7 @@ export default async function AdminUsersPage() {
       email: user.email ?? "No email",
       joinedAt: user.created_at,
       totalPurchases: purchases.filter((order) => order.status === "paid").length,
-      blocked: Boolean(user.banned_until && new Date(user.banned_until) > new Date()),
+      blocked: Boolean(user.blocked),
       history: purchases.map((order) => ({
         product: order.product_title,
         amount: order.amount,

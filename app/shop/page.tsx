@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import ShopCatalog from "../../components/ShopCatalog";
 import { getProducts } from "../../lib/products";
 
@@ -9,6 +10,7 @@ async function ShopContent({
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
+  await connection();
   const { category } = await searchParams;
   const initialCategory: Category =
     category === "Comics" || category === "Books" || category === "Manga"

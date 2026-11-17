@@ -1,25 +1,28 @@
+import Image from "next/image";
 import Link from "next/link";
 import AdminLoginForm from "../../components/admin/AdminLoginForm";
 
 export default function AdminLoginPage() {
-  const supabaseConfigured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+  const awsConfigured = Boolean(
+    process.env.AWS_COGNITO_USER_POOL_ID &&
+    process.env.AWS_COGNITO_CLIENT_ID &&
+    process.env.ADMIN_EMAIL,
   );
   return (
     <main className="admin-login-page">
       <section className="admin-login-card">
-        <Link className="admin-brand" href="/">ϟ FYNLOP<span>.</span></Link>
+        <Link className="admin-brand" href="/" aria-label="FYNLOP home">
+          <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={220} height={90} priority />
+        </Link>
         <p className="admin-eyebrow">STORIES BEYOND REALITY</p>
         <h1>Admin sign in</h1>
         <p className="admin-muted">Authorized FYNLOP administrators only.</p>
-        {!supabaseConfigured && (
+        {!awsConfigured && (
           <p className="admin-error" role="status">
-            Configure the Supabase URL, anon key, and server-only service role key before signing in.
+            Configure the AWS Cognito user pool, client, and admin email before signing in.
           </p>
         )}
-        <AdminLoginForm />
+        <AdminLoginForm email={process.env.ADMIN_EMAIL ?? ""} />
       </section>
     </main>
   );

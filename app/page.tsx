@@ -1,4 +1,7 @@
+import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowDown, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
 import FeaturedProducts from "../components/FeaturedProducts";
 
 export default function Home() {
@@ -8,14 +11,14 @@ export default function Home() {
         <div className="hero-content">
           <div className="hero-copy">
             <p className="eyebrow"><span className="eyebrow-mark" /> AN UNIVERSE OF STORIES</p>
-            <h1>FYNLOP<span>.</span></h1>
+            <h1><Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={1500} height={480} priority /></h1>
             <p className="hero-tagline">Stories Beyond Reality</p>
             <p className="hero-description">
               Step into a universe of bold comics and books, imagined by independent creators and made for curious minds.
             </p>
             <div className="hero-actions">
-              <Link className="button button-gold" href="/shop?category=Comics">Explore comics <span aria-hidden="true">↗</span></Link>
-              <Link className="hero-secondary" href="/shop?category=Books">Browse books <span aria-hidden="true">→</span></Link>
+              <Link className="button button-gold" href="/shop?category=Comics">Explore comics <ArrowUpRight aria-hidden="true" size={16} /></Link>
+              <Link className="hero-secondary" href="/shop?category=Books">Browse books <ArrowRight aria-hidden="true" size={16} /></Link>
             </div>
           </div>
           <div className="hero-art" aria-hidden="true">
@@ -24,11 +27,11 @@ export default function Home() {
             <div className="hero-art-orbit orbit-two" />
             <span className="hero-art-label">A WORLD APART</span>
           </div>
-          <span className="hero-stamp" aria-hidden="true">✳</span>
+          <span className="hero-stamp" aria-hidden="true"><Zap size={28} /></span>
         </div>
         <div className="hero-foot">
           <span>INDEPENDENT WORLDS. INFINITE WONDER.</span>
-          <span>SCROLL TO EXPLORE ↓</span>
+          <span>SCROLL TO EXPLORE <ArrowDown size={12} /></span>
         </div>
       </section>
 
@@ -38,9 +41,11 @@ export default function Home() {
             <p className="eyebrow"><span className="eyebrow-mark" /> THE FYNLOP EDIT</p>
             <h2 id="featured-title">Worlds to <em>get lost in.</em></h2>
           </div>
-          <Link className="text-link" href="/shop">Explore the collection <span aria-hidden="true">↗</span></Link>
+          <Link className="text-link" href="/shop">Explore the collection <ArrowUpRight aria-hidden="true" size={16} /></Link>
         </div>
-        <FeaturedProducts />
+        <Suspense fallback={<p className="checkout-help">Loading the collection…</p>}>
+          <FeaturedProducts />
+        </Suspense>
       </section>
 
       <section className="page-width about-band" id="about">
@@ -51,7 +56,7 @@ export default function Home() {
         <p className="hero-description">
           Fynlop is a home for stories that take the long way around. Discover a new perspective, meet a world unlike your own, and keep the stories that stay with you.
         </p>
-        <Link className="button button-gold" href="/shop">Find your next story <span aria-hidden="true">↗</span></Link>
+        <Link className="button button-gold" href="/shop">Find your next story <ArrowUpRight aria-hidden="true" size={16} /></Link>
       </section>
     </main>
   );

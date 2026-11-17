@@ -1,19 +1,30 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { authCookieName, requireAdmin } from "../../lib/auth";
 import {
-  ADMIN_EMAIL,
-  createAdminClient,
-  createCookieClient,
-  requireAdmin,
-} from "../../lib/supabase-server";
+  getOrderById,
+  getProduct,
+  getStoreSettings,
+  deleteProduct as removeProduct,
+  putProduct,
+  saveStoreSettings,
+  updateOrderStatus,
+} from "../../lib/dynamodb";
+import { setCognitoUserBlocked, signInWithCognito, getUserFromAccessToken } from "../../lib/cognito";
+import { deleteFiles, getPublicFileUrl, getUploadedFileKey, uploadFile } from "../../lib/s3";
 import { refundRazorpayPayment } from "../../lib/razorpay";
-import { parseStoragePath } from "../../lib/storage";
-import type { ProductCategory } from "../../types";
+import type { Product, ProductCategory } from "../../types";
 
 export type AdminLoginState = { error?: string };
 export type AdminActionState = AdminLoginState & { success?: string };
+
+function awsErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export async function signInAdmin(
   _previousState: AdminLoginState,
@@ -21,35 +32,36 @@ export async function signInAdmin(
 ): Promise<AdminLoginState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 
-  if (email !== ADMIN_EMAIL) {
-    redirect("/");
+  if (!adminEmail || email !== adminEmail) {
+    return { error: "This account is not authorized to access the admin workspace." };
   }
-  if (!password) {
-    return { error: "Enter your password to continue." };
-  }
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return { error: "Supabase is not configured. Add its URL and anon key to .env.local." };
-  }
+  if (!password) return { error: "Enter your password to continue." };
 
-  const supabase = await createCookieClient(true);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || data.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
-    return { error: "The email or password is incorrect." };
+  try {
+    const session = await signInWithCognito(email, password);
+    const user = await getUserFromAccessToken(session.accessToken);
+    if (!user || user.email.toLowerCase() !== adminEmail) {
+      return { error: "The email or password is incorrect." };
+    }
+
+    (await cookies()).set(authCookieName, session.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: session.expiresIn,
+    });
+  } catch (error) {
+    return { error: `Could not sign in: ${awsErrorMessage(error, "AWS Cognito is unavailable.")}` };
   }
 
   redirect("/admin/dashboard");
 }
 
 export async function signOutAdmin() {
-  const supabase = await createCookieClient(true);
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    throw new Error(`Could not sign out: ${error.message}`);
-  }
+  (await cookies()).delete(authCookieName);
   redirect("/admin/login");
 }
 
@@ -79,18 +91,23 @@ export async function updateProduct(formData: FormData) {
     return { error: "Check the product details and try again." };
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.from("products").update({
-    title,
-    description,
-    category: category as ProductCategory,
-    price_inr: Math.round(priceInr),
-    price_usd: Number(priceUsd.toFixed(2)),
-    author: author || "FYNLOP Creator",
-    pages,
-  }).eq("id", id);
+  try {
+    const product = await getProduct(id);
+    if (!product) return { error: "This product no longer exists." };
+    await putProduct({
+      ...product,
+      title,
+      description,
+      category: category as ProductCategory,
+      price_inr: Math.round(priceInr),
+      price_usd: Number(priceUsd.toFixed(2)),
+      author,
+      pages,
+    });
+  } catch (error) {
+    return { error: `Could not update product: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
 
-  if (error) return { error: `Could not update product: ${error.message}` };
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath(`/shop/${id}`);
@@ -99,40 +116,26 @@ export async function updateProduct(formData: FormData) {
 
 export async function deleteProduct(id: string) {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { data: product, error: loadError } = await admin
-    .from("products")
-    .select("id, cover_image_url, file_url, preview_images")
-    .eq("id", id)
-    .maybeSingle();
-  if (loadError) return { error: `Could not load product: ${loadError.message}` };
+  const product = await getProduct(id);
   if (!product) return { error: "This product no longer exists." };
 
-  const { error } = await admin.from("products").delete().eq("id", id);
-  if (error) return { error: `Could not delete product: ${error.message}` };
+  try {
+    await removeProduct(id);
+  } catch (error) {
+    return { error: `Could not delete product: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
 
-  const coverPaths = [product.cover_image_url, ...product.preview_images]
-    .map((url) => {
-      try {
-        const path = new URL(url).pathname.split("/storage/v1/object/public/product-covers/")[1];
-        return path ? decodeURIComponent(path) : null;
-      } catch {
-        return null;
-      }
-    })
-    .filter((path): path is string => Boolean(path));
-  const filePath = parseStoragePath(product.file_url);
-  const cleanupResults = await Promise.all([
-    ...(coverPaths.length
-      ? [admin.storage.from("product-covers").remove(coverPaths)]
-      : []),
-    ...(filePath?.bucket === "digital-editions"
-      ? [admin.storage.from("digital-editions").remove([filePath.path])]
-      : []),
-  ]);
-  const cleanupError = cleanupResults.find((result) => result.error)?.error;
-  if (cleanupError) {
-    return { error: `Product deleted, but a storage file could not be removed: ${cleanupError.message}` };
+  const keys = [
+    getUploadedFileKey(product.cover_image_url),
+    getUploadedFileKey(product.file_url),
+    ...(product.preview_images || []).map(getUploadedFileKey),
+  ].filter((key): key is string => key !== null);
+  try {
+    await deleteFiles(keys);
+  } catch (error) {
+    return {
+      error: `Product deleted, but a stored file could not be removed: ${awsErrorMessage(error, "S3 request failed.")}`,
+    };
   }
 
   revalidatePath("/admin/products");
@@ -143,9 +146,13 @@ export async function deleteProduct(id: string) {
 
 export async function setProductFeatured(id: string, featured: boolean) {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { error } = await admin.from("products").update({ featured }).eq("id", id);
-  if (error) return { error: `Could not update featured status: ${error.message}` };
+  try {
+    const product = await getProduct(id);
+    if (!product) return { error: "This product no longer exists." };
+    await putProduct({ ...product, featured });
+  } catch (error) {
+    return { error: `Could not update featured status: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
   revalidatePath("/admin/products");
   revalidatePath("/");
   revalidatePath("/shop");
@@ -153,20 +160,16 @@ export async function setProductFeatured(id: string, featured: boolean) {
 }
 
 export async function setUserBlocked(userId: string, blocked: boolean) {
-  const { user: adminUser } = await requireAdmin();
-  if (userId === adminUser.id) {
+  const admin = await requireAdmin();
+  if (userId === admin.id) {
     return { error: "You cannot block the active administrator account." };
   }
-  const admin = createAdminClient();
-  const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
-  if (targetError) return { error: `Could not load user account: ${targetError.message}` };
-  if (target.user.email?.toLowerCase() === ADMIN_EMAIL) {
-    return { error: "The administrator account cannot be blocked." };
+
+  try {
+    await setCognitoUserBlocked(userId, blocked);
+  } catch (error) {
+    return { error: `Could not update account status: ${awsErrorMessage(error, "Cognito request failed.")}` };
   }
-  const { error } = await admin.auth.admin.updateUserById(userId, {
-    ban_duration: blocked ? "876000h" : "none",
-  });
-  if (error) return { error: `Could not update account status: ${error.message}` };
   revalidatePath("/admin/users");
   return { success: blocked ? "User blocked." : "User unblocked." };
 }
@@ -191,43 +194,37 @@ export async function saveAdminSettings(
     return { error: "Enter a site name, tagline, valid support email, and payment mode." };
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.from("admin_settings").update({
-    site_name: siteName,
-    tagline,
-    support_email: supportEmail,
-    razorpay_mode: mode === "live" ? "live" : "test",
-    maintenance_mode: maintenanceMode,
-    updated_at: new Date().toISOString(),
-  }).eq("id", 1);
-  if (error) return { error: `Could not save settings: ${error.message}` };
+  try {
+    const current = await getStoreSettings();
+    await saveStoreSettings({
+      ...current,
+      site_name: siteName,
+      tagline,
+      support_email: supportEmail,
+      razorpay_mode: mode === "live" ? "live" : "test",
+      maintenance_mode: maintenanceMode,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    return { error: `Could not save settings: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
   revalidatePath("/admin/settings");
   return { success: "Settings saved." };
 }
 
 export async function refundOrder(orderId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
-  const { data: order, error: orderError } = await admin
-    .from("orders")
-    .select("id, payment_id, amount, status, razorpay_mode")
-    .eq("id", orderId)
-    .maybeSingle();
-
-  if (orderError) return { error: `Could not load order: ${orderError.message}` };
+  const order = await getOrderById(orderId);
   if (!order || order.status !== "paid") {
     return { error: "Only paid orders can be refunded." };
   }
 
-  const { data: claimedOrder, error: claimError } = await admin
-    .from("orders")
-    .update({ status: "refunding" })
-    .eq("id", order.id)
-    .eq("status", "paid")
-    .select("id")
-    .maybeSingle();
-  if (claimError) return { error: `Could not reserve this refund: ${claimError.message}` };
-  if (!claimedOrder) return { error: "This order is already being refunded or is no longer paid." };
+  let claimedOrder;
+  try {
+    claimedOrder = await updateOrderStatus(order, "refunding", "paid");
+  } catch (error) {
+    return { error: `Could not reserve this refund: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
 
   const { error: refundError } = await refundRazorpayPayment(
     order.payment_id,
@@ -235,26 +232,23 @@ export async function refundOrder(orderId: string) {
     order.razorpay_mode,
   );
   if (refundError) {
-    const { error: rollbackError } = await admin
-      .from("orders")
-      .update({ status: "paid" })
-      .eq("id", order.id)
-      .eq("status", "refunding");
-    if (rollbackError) {
-      return { error: `Razorpay refund failed: ${refundError}. Could not restore the order status: ${rollbackError.message}` };
+    try {
+      await updateOrderStatus(claimedOrder, "paid", "refunding");
+    } catch (rollbackError) {
+      return {
+        error: `Razorpay refund failed: ${refundError}. Could not restore the order status: ${awsErrorMessage(rollbackError, "DynamoDB request failed.")}`,
+      };
     }
     return { error: `Razorpay refund failed: ${refundError}` };
   }
 
-  const { error: updateError } = await admin
-    .from("orders")
-    .update({ status: "refunded" })
-    .eq("id", order.id)
-    .eq("status", "refunding");
-  if (updateError) {
-    return { error: `The payment was refunded, but the order status could not be updated: ${updateError.message}` };
+  try {
+    await updateOrderStatus(claimedOrder, "refunded", "refunding");
+  } catch (error) {
+    return {
+      error: `The payment was refunded, but the order status could not be updated: ${awsErrorMessage(error, "DynamoDB request failed.")}`,
+    };
   }
-
   revalidatePath("/admin/orders");
   revalidatePath("/admin/dashboard");
   return { success: "Refund issued." };
@@ -283,6 +277,7 @@ export async function createProduct(
     title.length > 100 ||
     !description ||
     description.length > 5000 ||
+    !author ||
     !["Comics", "Books", "Manga"].includes(category) ||
     !Number.isFinite(priceInr) ||
     priceInr <= 0 ||
@@ -309,146 +304,72 @@ export async function createProduct(
   ) {
     return { error: "Check required fields and uploads. Covers must be images under 3 MB, previews under 2 MB, and PDFs under 50 MB." };
   }
-  const pdfHeader = new Uint8Array(await pdf.slice(0, 5).arrayBuffer());
-  if (new TextDecoder().decode(pdfHeader) !== "%PDF-") {
+  if (new TextDecoder().decode(new Uint8Array(await pdf.slice(0, 5).arrayBuffer())) !== "%PDF-") {
     return { error: "The selected digital edition is not a valid PDF file." };
   }
 
-  const id = title
+  const slug = title
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 70);
-  if (!id) return { error: "The product title must contain letters or numbers." };
+  if (!slug) return { error: "The product title must contain letters or numbers." };
 
-  const admin = createAdminClient();
-  const { data: existing, error: existingError } = await admin
-    .from("products")
-    .select("id")
-    .eq("id", id)
-    .maybeSingle();
-  if (existingError) return { error: `Could not check product ID: ${existingError.message}` };
-  if (existing) return { error: "A product with this title already exists. Choose a unique title." };
-
-  const productId = `${id}-${crypto.randomUUID().slice(0, 8)}`;
-  const coverPath = `${productId}/cover.${cover.type.split("/")[1].replace("jpeg", "jpg")}`;
-  const pdfPath = `${productId}/edition.pdf`;
+  const id = `${slug}-${randomUUID().slice(0, 8)}`;
+  const extension = (type: string) => type.split("/")[1].replace("jpeg", "jpg");
+  const coverKey = `covers/${id}/cover.${extension(cover.type)}`;
+  const pdfKey = `pdfs/${id}/edition.pdf`;
   const previewFiles = previews.filter(
     (file): file is File => file instanceof File && file.size > 0,
   );
-  const uploadedPaths: { bucket: string; path: string }[] = [];
+  const previewKeys = previewFiles.map(
+    (file, index) => `previews/${id}/preview-${index + 1}.${extension(file.type)}`,
+  );
+  const uploadedKeys: string[] = [];
 
-  const coverUpload = await admin.storage.from("product-covers").upload(coverPath, cover, {
-    contentType: cover.type,
-    upsert: false,
-  });
-  if (coverUpload.error) return { error: `Cover upload failed: ${coverUpload.error.message}` };
-  uploadedPaths.push({ bucket: "product-covers", path: coverPath });
+  try {
+    await uploadFile(coverKey, cover, cover.type);
+    uploadedKeys.push(coverKey);
+    await uploadFile(pdfKey, pdf, "application/pdf");
+    uploadedKeys.push(pdfKey);
+    for (let index = 0; index < previewFiles.length; index += 1) {
+      await uploadFile(previewKeys[index], previewFiles[index], previewFiles[index].type);
+      uploadedKeys.push(previewKeys[index]);
+    }
 
-  const pdfUpload = await admin.storage.from("digital-editions").upload(pdfPath, pdf, {
-    contentType: "application/pdf",
-    upsert: false,
-  });
-  if (pdfUpload.error) {
-    const cleanup = await admin.storage.from("product-covers").remove([coverPath]);
-    return {
-      error: cleanup.error
-        ? `PDF upload failed: ${pdfUpload.error.message}. Cover cleanup failed: ${cleanup.error.message}`
-        : `PDF upload failed: ${pdfUpload.error.message}`,
+    const product: Product = {
+      id,
+      title,
+      description,
+      category: category as ProductCategory,
+      price_inr: Math.round(priceInr),
+      price_usd: Number(priceUsd.toFixed(2)),
+      author,
+      pages,
+      featured,
+      popularity: 0,
+      created_at: new Date().toISOString(),
+      cover_image_url: getPublicFileUrl(coverKey),
+      file_url: pdfKey,
+      preview_images: previewKeys.map(getPublicFileUrl),
     };
-  }
-  uploadedPaths.push({ bucket: "digital-editions", path: pdfPath });
-
-  const previewUrls: string[] = [];
-  for (let index = 0; index < previewFiles.length; index += 1) {
-    const file = previewFiles[index];
-    const extension = file.type.split("/")[1].replace("jpeg", "jpg");
-    const path = `${productId}/preview-${index + 1}.${extension}`;
-    const upload = await admin.storage.from("product-covers").upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    });
-    if (upload.error) {
-      const cleanup = await Promise.all(
-        uploadedPaths.map(({ bucket, path: uploadedPath }) =>
-          admin.storage.from(bucket).remove([uploadedPath]),
-        ),
-      );
-      const cleanupError = cleanup.find((result) => result.error)?.error;
+    await putProduct(product, true);
+  } catch (error) {
+    const message = awsErrorMessage(error, "The AWS request failed.");
+    try {
+      await deleteFiles(uploadedKeys);
+    } catch (cleanupError) {
       return {
-        error: cleanupError
-          ? `Preview upload failed: ${upload.error.message}. Storage cleanup failed: ${cleanupError.message}`
-          : `Preview upload failed: ${upload.error.message}`,
+        error: `Product creation failed: ${message}. S3 cleanup failed: ${awsErrorMessage(cleanupError, "S3 request failed.")}`,
       };
     }
-    uploadedPaths.push({ bucket: "product-covers", path });
-    previewUrls.push(admin.storage.from("product-covers").getPublicUrl(path).data.publicUrl);
-  }
-
-  const coverUrl = admin.storage.from("product-covers").getPublicUrl(coverPath).data.publicUrl;
-  const { error: insertError } = await admin.from("products").insert({
-    id: productId,
-    title,
-    description,
-    category: category as ProductCategory,
-    price_inr: Math.round(priceInr),
-    price_usd: Number(priceUsd.toFixed(2)),
-    author: author || "FYNLOP Creator",
-    pages,
-    featured,
-    cover_image_url: coverUrl,
-    file_url: pdfPath,
-    preview_images: previewUrls,
-  });
-
-  if (insertError) {
-    const cleanup = await Promise.all(
-      uploadedPaths.map(({ bucket, path }) => admin.storage.from(bucket).remove([path])),
-    );
-    const cleanupError = cleanup.find((result) => result.error)?.error;
-    return {
-      error: cleanupError
-        ? `Product save failed: ${insertError.message}. Storage cleanup failed: ${cleanupError.message}`
-        : `Product save failed: ${insertError.message}`,
-    };
+    return { error: `Product creation failed: ${message}` };
   }
 
   revalidatePath("/admin/products");
   revalidatePath("/");
   revalidatePath("/shop");
-  return { success: `Created “${title}”.`, productId };
-}
-
-export async function uploadAdminLogo(
-  _previousState: AdminLoginState,
-  formData: FormData,
-): Promise<AdminLoginState & { success?: string }> {
-  await requireAdmin();
-  const file = formData.get("logo");
-  if (
-    !(file instanceof File) ||
-    file.size === 0 ||
-    file.size > 3 * 1024 * 1024 ||
-    !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-  ) {
-    return { error: "Choose a JPG, PNG, or WebP logo smaller than 3 MB." };
-  }
-
-  const admin = createAdminClient();
-  const path = `brand/logo.${file.type.split("/")[1].replace("jpeg", "jpg")}`;
-  const { error: uploadError } = await admin.storage
-    .from("product-covers")
-    .upload(path, file, { contentType: file.type, upsert: true });
-  if (uploadError) return { error: `Logo upload failed: ${uploadError.message}` };
-  const logoUrl = admin.storage.from("product-covers").getPublicUrl(path).data.publicUrl;
-  const { error: settingsError } = await admin.from("admin_settings").update({
-    logo_url: logoUrl,
-    updated_at: new Date().toISOString(),
-  }).eq("id", 1);
-  if (settingsError) return { error: `Logo uploaded, but settings could not be saved: ${settingsError.message}` };
-
-  revalidatePath("/admin/settings");
-  return { success: "Logo uploaded." };
+  return { success: `Created “${title}”.`, productId: id };
 }

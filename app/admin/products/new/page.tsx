@@ -2,7 +2,7 @@ import Link from "next/link";
 import AdminPageHeader from "../../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../../components/admin/AdminShell";
 import ProductForm from "../../../../components/admin/ProductForm";
-import { requireAdmin } from "../../../../lib/supabase-server";
+import { requireAdmin } from "../../../../lib/auth";
 
 export default async function NewProductPage() {
   await requireAdmin();

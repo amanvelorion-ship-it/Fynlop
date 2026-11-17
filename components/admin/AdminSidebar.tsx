@@ -1,25 +1,36 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  ExternalLink,
+  LayoutDashboard,
+  LogOut,
+  Package,
+  Settings,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 import { signOutAdmin } from "../../app/admin/actions";
 
 const links = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: "◫" },
-  { href: "/admin/products", label: "Products", icon: "▣" },
-  { href: "/admin/orders", label: "Orders", icon: "↗" },
-  { href: "/admin/users", label: "Users", icon: "◎" },
-  { href: "/admin/analytics", label: "Analytics", icon: "⌁" },
-  { href: "/admin/settings", label: "Settings", icon: "⚙" },
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ adminEmail }: { adminEmail: string }) {
   const pathname = usePathname();
 
   return (
     <aside className="admin-sidebar">
-      <Link href="/admin/dashboard" className="admin-sidebar-brand">
-        <span aria-hidden="true">ϟ</span> FYNLOP<span className="admin-brand-dot">.</span>
+      <Link href="/admin/dashboard" className="admin-sidebar-brand" aria-label="FYNLOP admin dashboard">
+        <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} />
       </Link>
       <p className="admin-sidebar-label">WORKSPACE</p>
       <nav className="admin-nav" aria-label="Admin navigation">
@@ -32,7 +43,7 @@ export default function AdminSidebar() {
               key={link.href}
               aria-current={active ? "page" : undefined}
             >
-              <span className="admin-nav-icon" aria-hidden="true">{link.icon}</span>
+              <link.icon className="admin-nav-icon" aria-hidden="true" size={18} />
               {link.label}
             </Link>
           );
@@ -40,16 +51,16 @@ export default function AdminSidebar() {
       </nav>
       <div className="admin-sidebar-bottom">
         <Link href="/" className="admin-nav-link">
-          <span className="admin-nav-icon" aria-hidden="true">↗</span>
+          <ExternalLink className="admin-nav-icon" aria-hidden="true" size={18} />
           View storefront
         </Link>
         <form action={signOutAdmin}>
           <button className="admin-nav-link admin-logout" type="submit">
-            <span className="admin-nav-icon" aria-hidden="true">⇥</span>
+            <LogOut className="admin-nav-icon" aria-hidden="true" size={18} />
             Sign out
           </button>
         </form>
-        <p>ADMIN · aman.velorion@gmail.com</p>
+        <p>ADMIN · {adminEmail}</p>
       </div>
     </aside>
   );

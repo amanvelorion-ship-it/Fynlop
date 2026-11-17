@@ -2,35 +2,24 @@
 
 import Link from "next/link";
 import Script from "next/script";
+import { ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { products } from "../../data/products";
 import { readCart, subscribeToCart, writeCart } from "../../lib/cart";
-import { createClient } from "../../lib/supabase";
-import type { Product } from "../../types";
+import type { Product, User } from "../../types";
 
-type SessionState = "loading" | "signed-in" | "signed-out" | "unconfigured";
-const supabaseConfigured = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+type SessionState = "loading" | "signed-in" | "signed-out";
 
 export default function CheckoutPage() {
   const [cartIds, setCartIds] = useState<string[]>([]);
-  const [catalog, setCatalog] = useState<Product[]>(products);
+  const [catalog, setCatalog] = useState<Product[]>([]);
   const [catalogReady, setCatalogReady] = useState(false);
   const [email, setEmail] = useState("");
-  const [sessionState, setSessionState] = useState<SessionState>(
-    supabaseConfigured ? "loading" : "unconfigured",
-  );
-  const [accessToken, setAccessToken] = useState("");
+  const [sessionState, setSessionState] = useState<SessionState>("loading");
   const [razorpayReady, setRazorpayReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(
-    supabaseConfigured
-      ? ""
-      : "Supabase is not configured. Add its URL and anon key to .env.local.",
-  );
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [emailWarning, setEmailWarning] = useState("");
 
   useEffect(() => {
     const updateCart = () => setCartIds(readCart());
@@ -54,35 +43,28 @@ export default function CheckoutPage() {
         }
       })
       .catch((reason: unknown) => {
-        if (!active) return;
-        setError(reason instanceof Error ? reason.message : "Could not load the product catalog.");
+        if (active) {
+          setError(reason instanceof Error ? reason.message : "Could not load the product catalog.");
+        }
       });
 
-    if (supabaseConfigured) {
-      void Promise.resolve()
-        .then(() => createClient().auth.getSession())
-        .then(({ data, error: sessionError }) => {
-          if (!active) return;
-          if (sessionError) {
-            setError(sessionError.message);
-            setSessionState("signed-out");
-            return;
-          }
-          const session = data.session;
-          if (!session) {
-            setSessionState("signed-out");
-            return;
-          }
-          setEmail(session.user.email ?? "");
-          setAccessToken(session.access_token);
+    fetch("/api/auth")
+      .then(async (response) => {
+        const payload = (await response.json()) as { user?: User | null; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "Could not check your account.");
+        if (!active) return;
+        if (payload.user) {
+          setEmail(payload.user.email);
           setSessionState("signed-in");
-        })
-        .catch((reason: unknown) => {
-          if (!active) return;
-          setSessionState("unconfigured");
-          setError(reason instanceof Error ? reason.message : "Supabase is not configured.");
-        });
-    }
+        } else {
+          setSessionState("signed-out");
+        }
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : "Could not check your account.");
+        setSessionState("signed-out");
+      });
 
     return () => {
       active = false;
@@ -101,7 +83,7 @@ export default function CheckoutPage() {
       setError("The product catalog is still loading. Please wait a moment and try again.");
       return;
     }
-    if (!window.Razorpay || !razorpayReady || !accessToken) {
+    if (!window.Razorpay || !razorpayReady || sessionState !== "signed-in") {
       setError("Sign in and wait for secure checkout to load before continuing.");
       return;
     }
@@ -112,11 +94,8 @@ export default function CheckoutPage() {
     try {
       const orderResponse = await fetch("/api/razorpay/order", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ productIds: cartProducts.map((product) => product.id), email }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: cartProducts.map((product) => product.id) }),
       });
       const orderPayload = (await orderResponse.json()) as {
         error?: string;
@@ -143,21 +122,22 @@ export default function CheckoutPage() {
           try {
             const verifyResponse = await fetch("/api/razorpay/verify", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ...payment,
                 productIds: cartProducts.map((product) => product.id),
               }),
             });
-            const verifyPayload = (await verifyResponse.json()) as { error?: string };
+            const verifyPayload = (await verifyResponse.json()) as {
+              error?: string;
+              emailWarning?: string;
+            };
             if (!verifyResponse.ok) {
               throw new Error(verifyPayload.error ?? "Payment could not be verified.");
             }
             writeCart([]);
             setCartIds([]);
+            setEmailWarning(verifyPayload.emailWarning ?? "");
             setSuccess(true);
           } catch (reason) {
             setError(
@@ -194,7 +174,7 @@ export default function CheckoutPage() {
         <div className="empty-cart">
           <h2>Your cart is waiting for a story.</h2>
           <p>Explore the collection and add something wonderful.</p>
-          <Link className="button button-gold" href="/shop">Explore the shop <span aria-hidden="true">↗</span></Link>
+          <Link className="button button-gold" href="/shop">Explore the shop <ArrowRight size={16} /></Link>
         </div>
       ) : (
         <div className="checkout-layout">
@@ -203,37 +183,33 @@ export default function CheckoutPage() {
               <div className="checkout-success" role="status">
                 <h2>Payment confirmed. Your stories are in your library.</h2>
                 <p>Open your library to access the editions on your account.</p>
-                <Link href="/my-library">Go to my library →</Link>
+                {emailWarning && <p className="checkout-help" role="status">{emailWarning}</p>}
+                <Link href="/my-library">Go to my library <ArrowRight size={15} /></Link>
               </div>
             ) : (
               <>
                 <h2>YOUR DETAILS</h2>
-                <label className="checkout-label" htmlFor="checkout-email">Email address</label>
+                <label className="checkout-label" htmlFor="checkout-email">Account email</label>
                 <input
                   className="form-control"
                   id="checkout-email"
                   type="email"
                   autoComplete="email"
-                  required
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
+                  readOnly
                 />
                 {sessionState === "signed-out" && (
-                  <p className="checkout-help">Sign in to keep your purchase in your library. <Link href="/my-library">Sign in or create an account →</Link></p>
+                  <p className="checkout-help">Sign in to keep your purchase in your library. <Link href="/my-library">Sign in or create an account <ArrowRight size={14} /></Link></p>
                 )}
-                {sessionState === "unconfigured" && (
-                  <p className="checkout-help">Add your Supabase settings to enable secure accounts and checkout.</p>
-                )}
-                <p className="checkout-help">Secure payment powered by Razorpay. Prices are charged in Indian rupees.</p>
+                <p className="checkout-help"><LockKeyhole size={14} /> Secure payment powered by Razorpay. Prices are charged in Indian rupees.</p>
                 {error && <p className="checkout-error" role="alert">{error}</p>}
                 <button
                   className="button button-gold payment-button"
                   onClick={startPayment}
-                  disabled={busy || !catalogReady || sessionState !== "signed-in" || !razorpayReady || !email || cartProducts.length === 0}
+                  disabled={busy || !catalogReady || sessionState !== "signed-in" || !razorpayReady || cartProducts.length === 0}
                 >
-                  {busy ? "Verifying securely…" : `Pay ₹${total.toLocaleString("en-IN")} with Razorpay`}
-                  {!busy && <span aria-hidden="true">↗</span>}
+                  {busy ? <><LoaderCircle className="spin" size={16} /> Verifying securely…</> : `Pay ₹${total.toLocaleString("en-IN")} with Razorpay`}
+                  {!busy && <ArrowRight size={16} />}
                 </button>
               </>
             )}

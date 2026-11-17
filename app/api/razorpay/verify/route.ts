@@ -1,24 +1,33 @@
+import { getAuthenticatedUser } from "../../../../lib/auth";
+import {
+  getOrdersByUser,
+  getProduct,
+  getStoreSettings,
+  saveOrder,
+} from "../../../../lib/dynamodb";
 import { verifyRazorpayOrder } from "../../../../lib/razorpay";
-import { createAdminClient, getAuthenticatedUser } from "../../../../lib/supabase-server";
+import { sendOrderConfirmation } from "../../../../lib/ses";
+import type { Order } from "../../../../types";
+
+type VerifyBody = {
+  razorpay_order_id?: unknown;
+  razorpay_payment_id?: unknown;
+  razorpay_signature?: unknown;
+  productIds?: unknown;
+};
 
 export async function POST(request: Request) {
   try {
-    const user = await getAuthenticatedUser(request.headers.get("authorization"));
+    const user = await getAuthenticatedUser();
     if (!user) {
       return Response.json({ error: "Sign in to verify this payment." }, { status: 401 });
     }
 
-    const body: unknown = await request.json();
+    const body: VerifyBody = await request.json();
     if (
-      typeof body !== "object" ||
-      body === null ||
-      !("razorpay_order_id" in body) ||
       typeof body.razorpay_order_id !== "string" ||
-      !("razorpay_payment_id" in body) ||
       typeof body.razorpay_payment_id !== "string" ||
-      !("razorpay_signature" in body) ||
       typeof body.razorpay_signature !== "string" ||
-      !("productIds" in body) ||
       !Array.isArray(body.productIds) ||
       !body.productIds.every((id: unknown) => typeof id === "string")
     ) {
@@ -26,58 +35,79 @@ export async function POST(request: Request) {
     }
 
     const productIds = [...new Set(body.productIds as string[])];
-    const paymentId = body.razorpay_payment_id;
-    if (!productIds.length) {
+    if (!productIds.length || productIds.length > 50) {
       return Response.json({ error: "The purchased product selection is invalid." }, { status: 400 });
     }
-    const admin = createAdminClient();
-    const [{ data: selectedProducts, error: catalogError }, { data: settings, error: settingsError }] = await Promise.all([
-      admin.from("products").select("id, price_inr").in("id", productIds),
-      admin.from("admin_settings").select("razorpay_mode").eq("id", 1).maybeSingle(),
+    const [products, settings] = await Promise.all([
+      Promise.all(productIds.map(getProduct)),
+      getStoreSettings(),
     ]);
-    if (catalogError) {
-      return Response.json({ error: `Could not verify the product catalog: ${catalogError.message}` }, { status: 503 });
-    }
-    if (settingsError) {
-      return Response.json({ error: `Could not load store payment settings: ${settingsError.message}` }, { status: 503 });
-    }
-    if (!selectedProducts || selectedProducts.length !== productIds.length) {
+    if (products.some((product) => !product)) {
       return Response.json({ error: "The purchased product selection is invalid." }, { status: 400 });
     }
-    const mode = settings?.razorpay_mode ?? "test";
-
+    const selectedProducts = products.filter((product) => product !== null);
     const verifiedMode = await verifyRazorpayOrder(
       body.razorpay_order_id,
-      paymentId,
+      body.razorpay_payment_id,
       body.razorpay_signature,
       user.id,
       productIds,
       selectedProducts,
-      mode,
+      settings.razorpay_mode,
     );
     if (!verifiedMode) {
       return Response.json({ error: "Payment verification failed." }, { status: 400 });
     }
 
-    const rows = selectedProducts.map((product) => ({
+    const createdAt = new Date().toISOString();
+    const orders: Order[] = selectedProducts.map((product) => ({
+      id: `${body.razorpay_payment_id}_${product.id}`,
       user_id: user.id,
       product_id: product.id,
-      payment_id: paymentId,
+      payment_id: body.razorpay_payment_id as string,
       amount: product.price_inr,
       razorpay_mode: verifiedMode,
-      status: "paid" as const,
+      status: "paid",
+      created_at: createdAt,
     }));
-    const { error: saveError } = await admin
-      .from("orders")
-      .upsert(rows, { onConflict: "payment_id,product_id" });
-    if (saveError) {
-      return Response.json(
-        { error: `Payment was verified, but your library could not be updated: ${saveError.message}` },
-        { status: 500 },
+    let orderCreated = false;
+    for (const order of orders) {
+      const inserted = await saveOrder(order);
+      if (inserted) {
+        orderCreated = true;
+        continue;
+      }
+
+      const existing = (await getOrdersByUser(user.id)).find(
+        (savedOrder) => savedOrder.id === order.id,
       );
+      if (
+        !existing ||
+        existing.payment_id !== order.payment_id ||
+        existing.product_id !== order.product_id ||
+        existing.status !== "paid"
+      ) {
+        return Response.json(
+          { error: "This payment has already been processed or reversed." },
+          { status: 409 },
+        );
+      }
     }
 
-    return Response.json({ success: true });
+    let emailWarning: string | undefined;
+    if (orderCreated) {
+      try {
+        await sendOrderConfirmation(
+          user.email,
+          selectedProducts.map((product) => product.title),
+        );
+      } catch (error) {
+        console.error("SES order confirmation failed:", error);
+        emailWarning = "Payment confirmed, but the confirmation email could not be sent. Your purchase is available in My Library.";
+      }
+    }
+
+    return Response.json({ success: true, ...(emailWarning ? { emailWarning } : {}) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to verify this payment.";
     return Response.json({ error: message }, { status: 500 });

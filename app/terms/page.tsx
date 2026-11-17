@@ -1,4 +1,5 @@
 export default function TermsPage() {
+  const supportEmail = process.env.AWS_SES_FROM_EMAIL;
   return (
     <main className="page-shell page-width">
       <header className="page-heading">
@@ -10,9 +11,9 @@ export default function TermsPage() {
         <h2>Digital purchases</h2>
         <p>A completed purchase gives the account used at checkout access to the purchased digital edition for personal use. Do not redistribute, resell, or publicly share files unless the rights holder has expressly allowed it.</p>
         <h2>Accounts and payments</h2>
-        <p>Keep your account credentials private. Payments are processed by Razorpay, and authentication and purchase records are managed through Supabase. Their respective terms and privacy policies apply to those services.</p>
+        <p>Keep your account credentials private. Payments are processed by Razorpay, while accounts and purchase records are managed using AWS services. Their respective terms and privacy policies apply.</p>
         <h2>Support</h2>
-        <p>For account or order assistance, contact <a href="mailto:hello@fynlop.com">hello@fynlop.com</a>. These terms do not override consumer protections that apply under local law.</p>
+        <p>For account or order assistance, contact {supportEmail ? <a href={`mailto:${supportEmail}`}>{supportEmail}</a> : "FYNLOP support"}. These terms do not override consumer protections that apply under local law.</p>
       </article>
     </main>
   );

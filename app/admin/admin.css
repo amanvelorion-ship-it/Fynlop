@@ -18,20 +18,13 @@
 
 .admin-sidebar-brand {
   padding: 0 14px;
-  color: #f8f6f1;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 1.3px;
+  display: block;
 }
 
-.admin-sidebar-brand > span:first-child {
-  margin-right: 6px;
-  color: #ffb800;
-  font-size: 27px;
-}
-
-.admin-brand-dot {
-  color: #7b2fff;
+.admin-sidebar-brand img {
+  width: 160px;
+  max-width: 100%;
+  height: auto;
 }
 
 .admin-sidebar-label,
@@ -135,10 +128,8 @@ body:has(.admin-login-page) .site-footer {
 
 .admin-nav-icon {
   width: 18px;
-  display: inline-flex;
-  justify-content: center;
+  flex: 0 0 18px;
   color: currentColor;
-  font-size: 16px;
 }
 
 .admin-sidebar-bottom {
@@ -716,14 +707,12 @@ body:has(.admin-login-page) .site-footer {
 
 .admin-brand {
   display: inline-block;
-  color: #f8f6f1;
-  font-size: 23px;
-  font-weight: 800;
-  letter-spacing: 1px;
 }
 
-.admin-brand > span {
-  color: #ffb800;
+.admin-brand img {
+  width: 180px;
+  max-width: 100%;
+  height: auto;
 }
 
 .admin-login-card > .admin-eyebrow {

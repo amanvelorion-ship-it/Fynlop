@@ -3,14 +3,23 @@
 
 :root {
   color-scheme: dark;
-  --background: #0a0a0f;
-  --surface: #111118;
-  --surface-raised: #171720;
+  --bg-primary: #0a0a0f;
+  --bg-card: #111118;
+  --bg-sidebar: #0d0d14;
   --gold: #ffb800;
   --purple: #7b2fff;
-  --white: #f8f6f1;
-  --muted: #92909d;
-  --line: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #9999aa;
+  --border: #222233;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --background: var(--bg-primary);
+  --surface: var(--bg-card);
+  --surface-raised: #171720;
+  --white: var(--text-primary);
+  --muted: var(--text-secondary);
+  --line: var(--border);
 }
 
 @theme inline {
@@ -110,6 +119,12 @@ select:focus-visible {
   font-size: 21px;
   font-weight: 800;
   letter-spacing: 1.6px;
+}
+
+.brand img {
+  width: 145px;
+  height: auto;
+  object-fit: contain;
 }
 
 .brand-bolt {
@@ -330,6 +345,12 @@ select:focus-visible {
   text-shadow: 0 0 55px rgba(123, 47, 255, 0.18);
 }
 
+.hero h1 img {
+  width: min(100%, 620px);
+  height: auto;
+  filter: drop-shadow(0 0 24px rgba(123, 47, 255, 0.22));
+}
+
 .hero h1 span {
   color: var(--gold);
   text-shadow: 0 0 30px rgba(255, 184, 0, 0.27);
@@ -388,9 +409,9 @@ select:focus-visible {
   position: absolute;
   inset: 12px;
   background:
-    linear-gradient(0deg, #0a0a0f 3%, transparent 62%),
-    url("https://picsum.photos/seed/fynlop-hero/900/1200") center / cover;
-  filter: saturate(0.7);
+    radial-gradient(ellipse at 42% 32%, rgba(123, 47, 255, 0.58), transparent 39%),
+    radial-gradient(ellipse at 60% 70%, rgba(255, 184, 0, 0.2), transparent 46%),
+    linear-gradient(145deg, #191322, #0a0a0f 72%);
 }
 
 .hero-art-orbit {
@@ -1153,12 +1174,16 @@ select:focus-visible {
 .footer-main {
   padding-bottom: 44px;
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 0.8fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 35px;
 }
 
 .footer-brand {
   font-size: 19px;
+}
+
+.footer-brand img {
+  width: 150px;
 }
 
 .footer-main > div:first-child > p {
@@ -1167,8 +1192,7 @@ select:focus-visible {
   line-height: 1.8;
 }
 
-.footer-links,
-.footer-social {
+.footer-links {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1185,12 +1209,7 @@ select:focus-visible {
   letter-spacing: 1.5px;
 }
 
-.footer-links a:hover,
-.footer-social a:hover {
-  color: var(--gold);
-}
-
-.footer-social a span {
+.footer-links a:hover {
   color: var(--gold);
 }
 
@@ -1257,8 +1276,7 @@ select:focus-visible {
   .nav-inner,
   .hero-content { width: calc(100% - 38px); }
   .site-header { height: 70px; }
-  .brand { font-size: 18px; }
-  .brand-bolt { font-size: 27px; }
+  .brand img { width: 125px; }
   .nav-library,
   .nav-account { display: none; }
   .nav-links {
@@ -1280,22 +1298,18 @@ select:focus-visible {
   .menu-toggle {
     width: 32px;
     height: 34px;
-    padding: 8px 4px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
+    padding: 4px;
+    display: grid;
+    place-items: center;
     border: 0;
     background: transparent;
     cursor: pointer;
   }
-  .menu-toggle span { height: 1px; background: var(--white); transition: transform 150ms ease; }
-  .menu-active span:first-child { transform: translateY(3.5px) rotate(45deg); }
-  .menu-active span:last-child { transform: translateY(-3.5px) rotate(-45deg); }
   .hero { min-height: 690px; height: calc(100svh - 70px); align-items: start; }
   .hero-content { padding-top: 92px; }
   .hero-copy { width: 100%; }
   .hero h1 { margin-top: 24px; font-size: clamp(86px, 24vw, 136px); }
+  .hero h1 img { width: min(100%, 460px); }
   .hero-tagline { margin-top: 18px; }
   .hero-description { max-width: 320px; margin-top: 14px; }
   .hero-art {

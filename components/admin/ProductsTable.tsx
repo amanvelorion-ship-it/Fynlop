@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { Pencil, Trash2, X } from "lucide-react";
 import {
   deleteProduct,
   setProductFeatured,
@@ -90,7 +91,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                 </td>
                 <td>
                   <div className="admin-table-actions">
-                    <button className="admin-button" onClick={() => setEditing(product)}>Edit</button>
+                    <button className="admin-button" onClick={() => setEditing(product)}><Pencil size={13} /> Edit</button>
                     <button
                       className="admin-button admin-button-danger"
                       disabled={pending}
@@ -100,7 +101,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                         }
                       }}
                     >
-                      Delete
+                      <Trash2 size={13} /> Delete
                     </button>
                   </div>
                 </td>
@@ -119,7 +120,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
           <section className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="edit-product-title">
             <div className="admin-modal-header">
               <h2 id="edit-product-title">Edit product</h2>
-              <button className="admin-icon-button" onClick={() => setEditing(null)} aria-label="Close">×</button>
+              <button className="admin-icon-button" onClick={() => setEditing(null)} aria-label="Close"><X size={17} /></button>
             </div>
             <form action={saveProduct}>
               <input type="hidden" name="id" value={editing.id} />

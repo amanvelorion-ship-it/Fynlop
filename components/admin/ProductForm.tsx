@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useActionState } from "react";
 import { createProduct } from "../../app/admin/actions";
 
@@ -18,7 +19,7 @@ export default function ProductForm() {
               <option>Comics</option><option>Books</option><option>Manga</option>
             </select>
           </label>
-          <label>Author<input className="admin-input" name="author" maxLength={120} placeholder="FYNLOP Creator" /></label>
+          <label>Author<input className="admin-input" name="author" required maxLength={120} /></label>
           <label>Price (INR)<input className="admin-input" name="price_inr" type="number" min="1" step="1" required /></label>
           <label>Price (USD)<input className="admin-input" name="price_usd" type="number" min="0.01" step="0.01" required /></label>
           <label>Pages<input className="admin-input" name="pages" type="number" min="1" step="1" required /></label>
@@ -46,7 +47,7 @@ export default function ProductForm() {
       {state.error && <p className="admin-error" role="alert">{state.error}</p>}
       {state.success && (
         <p className="admin-message" role="status">
-          {state.success} <Link href="/admin/products">View products →</Link>
+          {state.success} <Link href="/admin/products">View products <ArrowRight size={14} /></Link>
         </p>
       )}
       <button className="admin-button admin-button-primary" disabled={pending}>

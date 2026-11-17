@@ -1,3 +1,5 @@
+import type { LucideIcon } from "lucide-react";
+
 export default function StatsCard({
   title,
   value,
@@ -8,14 +10,15 @@ export default function StatsCard({
   title: string;
   value: string;
   change?: string;
-  icon: string;
+  icon: LucideIcon;
   detail?: string;
 }) {
+  const Icon = icon;
   return (
     <article className="admin-stat-card">
       <div className="admin-stat-top">
         <span>{title}</span>
-        <span className="admin-stat-icon" aria-hidden="true">{icon}</span>
+        <span className="admin-stat-icon" aria-hidden="true"><Icon size={16} /></span>
       </div>
       <strong className="admin-stat-value">{value}</strong>
       <p className="admin-stat-detail">

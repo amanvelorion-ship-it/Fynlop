@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { X } from "lucide-react";
 import { setUserBlocked } from "../../app/admin/actions";
 
 export type AdminUserRow = {
@@ -59,7 +60,7 @@ export default function UsersTable({ users }: { users: AdminUserRow[] }) {
           <section className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="purchase-history-title">
             <div className="admin-modal-header">
               <div><p className="admin-eyebrow">CUSTOMER HISTORY</p><h2 id="purchase-history-title">{selected.email}</h2></div>
-              <button className="admin-icon-button" onClick={() => setSelected(null)} aria-label="Close">×</button>
+              <button className="admin-icon-button" onClick={() => setSelected(null)} aria-label="Close"><X size={17} /></button>
             </div>
             {selected.history.length ? (
               <div className="admin-list">

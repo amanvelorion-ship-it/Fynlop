@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUpRight, Check, ShoppingBag } from "lucide-react";
 import { addToCart } from "../lib/cart";
 
 export default function AddToCartButton({
@@ -13,6 +14,7 @@ export default function AddToCartButton({
 }) {
   const [added, setAdded] = useState(false);
   const router = useRouter();
+  const Icon = buyNow ? ArrowUpRight : added ? Check : ShoppingBag;
 
   function handleClick() {
     addToCart(productId);
@@ -27,8 +29,8 @@ export default function AddToCartButton({
 
   return (
     <button className="button button-gold add-button" onClick={handleClick}>
-      {buyNow ? "Buy now with Razorpay" : added ? "Added to cart ✓" : "Add to cart"}
-      <span aria-hidden="true">↗</span>
+      {buyNow ? "Buy now with Razorpay" : added ? "Added to cart" : "Add to cart"}
+      <Icon aria-hidden="true" size={16} />
     </button>
   );
 }

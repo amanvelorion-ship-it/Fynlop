@@ -1,20 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ArrowUpRight } from "lucide-react";
+import { connection } from "next/server";
 import ProductCard from "../../../components/ProductCard";
 import AddToCartButton from "../../../components/AddToCartButton";
 import { getProducts } from "../../../lib/products";
-
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((product) => ({ id: product.id }));
-}
 
 async function ProductContent({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await connection();
   const { id } = await params;
   const products = await getProducts();
   const product = products.find((item) => item.id === id);
@@ -59,25 +57,24 @@ async function ProductContent({
 
         <section className="preview-section">
           <p className="eyebrow"><span className="eyebrow-mark" /> TAKE A LOOK INSIDE</p>
-          <div className="preview-grid" aria-label="Sample pages">
-            {(product.preview_images?.length ? product.preview_images.slice(0, 3) : []).map((image, index) => (
-              <div className="preview-page preview-image" key={image} role="img" aria-label={`Preview page ${index + 1} of ${product.title}`} style={{ backgroundImage: `url("${image}")` }}>
-                <span>PAGE {String(index + 1).padStart(2, "0")} · PREVIEW</span>
+          {product.preview_images?.length ? (
+            <>
+              <div className="preview-grid" aria-label="Preview pages">
+                {product.preview_images.slice(0, 3).map((image, index) => (
+                  <div className="preview-page preview-image" key={image} role="img" aria-label={`Preview page ${index + 1} of ${product.title}`} style={{ backgroundImage: `url("${image}")` }}>
+                    <span>PAGE {String(index + 1).padStart(2, "0")} · PREVIEW</span>
+                  </div>
+                ))}
+                <div className="preview-page preview-locked" aria-label="More pages are part of the full edition">
+                  <span>{Math.min(4, product.pages)} / {product.pages}</span>
+                  <strong>Continue reading in your library.</strong>
+                </div>
               </div>
-            ))}
-            {!product.preview_images?.length && (
-              <>
-                <div className="preview-page"><span>PAGE 01 · {product.category.toUpperCase()}</span><strong>{product.title}</strong><span>AN ORIGINAL STORY BY {product.author.toUpperCase()}</span></div>
-                <div className="preview-page"><span>CHAPTER ONE</span><strong>Somewhere beyond the ordinary.</strong><span>02 / {product.pages}</span></div>
-                <div className="preview-page"><span>THE STORY CONTINUES</span><strong>Every world starts with a question.</strong><span>03 / {product.pages}</span></div>
-              </>
-            )}
-            <div className="preview-page preview-locked" aria-label="Page 4 is part of the full edition">
-              <span>04 / {product.pages}</span>
-              <strong>Keep reading in your library.</strong>
-            </div>
-          </div>
-          <p className="preview-note">A glimpse of the story. The full digital edition is yours after checkout.</p>
+              <p className="preview-note">A glimpse of the story. The full digital edition is yours after checkout.</p>
+            </>
+          ) : (
+            <p className="preview-note">Preview pages are not available for this edition.</p>
+          )}
         </section>
       </div>
 
@@ -88,7 +85,7 @@ async function ProductContent({
               <p className="eyebrow"><span className="eyebrow-mark" /> KEEP EXPLORING</p>
               <h2>More from this <em>world.</em></h2>
             </div>
-            <Link className="text-link" href="/shop">View all <span aria-hidden="true">↗</span></Link>
+            <Link className="text-link" href="/shop">View all <ArrowUpRight aria-hidden="true" size={16} /></Link>
           </div>
           <div className="product-grid">
             {relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}

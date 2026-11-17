@@ -1,9 +1,17 @@
 import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  CircleDollarSign,
+  PackagePlus,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 import AdminPageHeader from "../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../components/admin/AdminShell";
 import StatsCard from "../../../components/admin/StatsCard";
 import { fetchAdminOrders, fetchAdminProducts, fetchAdminUsers } from "../../../lib/admin-data";
-import { requireAdmin } from "../../../lib/supabase-server";
+import { requireAdmin } from "../../../lib/auth";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
@@ -32,16 +40,16 @@ export default async function AdminDashboardPage() {
         description="A snapshot of what is happening across your FYNLOP store."
       />
       <section className="admin-stats-grid" aria-label="Store statistics">
-        <StatsCard title="TOTAL REVENUE" value={`₹${revenue.toLocaleString("en-IN")}`} icon="₹" detail="From paid orders" />
-        <StatsCard title="TOTAL ORDERS" value={orders.length.toLocaleString("en-IN")} icon="↗" detail={`${paidOrders.length} paid`}/>
-        <StatsCard title="TOTAL USERS" value={users.length.toLocaleString("en-IN")} icon="◎" detail="Registered accounts" />
-        <StatsCard title="BEST SELLING COMIC" value={bestComic?.[0] ?? "No sales yet"} icon="▣" detail={bestComic ? `${bestComic[1]} purchases` : "Comic sales will appear here"} />
+        <StatsCard title="TOTAL REVENUE" value={`₹${revenue.toLocaleString("en-IN")}`} icon={CircleDollarSign} detail="From paid orders" />
+        <StatsCard title="TOTAL ORDERS" value={orders.length.toLocaleString("en-IN")} icon={ShoppingCart} detail={`${paidOrders.length} paid`}/>
+        <StatsCard title="TOTAL USERS" value={users.length.toLocaleString("en-IN")} icon={Users} detail="Registered accounts" />
+        <StatsCard title="BEST SELLING COMIC" value={bestComic?.[0] ?? "No sales yet"} icon={BookOpen} detail={bestComic ? `${bestComic[1]} purchases` : "Comic sales will appear here"} />
       </section>
       <div className="admin-dashboard-grid">
         <section className="admin-panel">
           <div className="admin-panel-heading">
             <h2>Recent orders</h2>
-            <Link href="/admin/orders">All orders →</Link>
+            <Link href="/admin/orders">All orders <ArrowRight size={14} /></Link>
           </div>
           <div className="admin-table-wrap">
             <table className="admin-table">
@@ -64,9 +72,9 @@ export default async function AdminDashboardPage() {
         <section className="admin-panel">
           <div className="admin-panel-heading"><h2>Quick actions</h2></div>
           <div className="admin-quick-links">
-            <Link href="/admin/products/new">Add a product <span>＋</span></Link>
-            <Link href="/admin/orders">View all orders <span>↗</span></Link>
-            <Link href="/admin/users">Manage users <span>◎</span></Link>
+            <Link href="/admin/products/new">Add a product <PackagePlus size={16} /></Link>
+            <Link href="/admin/orders">View all orders <ArrowRight size={16} /></Link>
+            <Link href="/admin/users">Manage users <Users size={16} /></Link>
           </div>
           <p className="admin-muted">Keep your catalog fresh and your customers close.</p>
         </section>

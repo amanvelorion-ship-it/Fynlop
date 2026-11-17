@@ -1,28 +1,30 @@
 # FYNLOP — Stories Beyond Reality
 
-A dark, cinematic storefront for digital comics and books, built with the Next.js App Router, TypeScript, Tailwind CSS, Supabase, Framer Motion, and Razorpay.
+A digital comics and books storefront built with Next.js, TypeScript, AWS, Razorpay, Framer Motion, and Lucide.
 
-## Run locally
+## AWS setup
 
-1. Install dependencies with `npm install`.
-2. Copy `.env.example` to `.env.local` and add your Supabase and Razorpay credentials. Keep `.env.local` private.
-3. Run `supabase/schema.sql` in the SQL editor for your Supabase project.
-4. Create the `aman.velorion@gmail.com` administrator account in Supabase Auth with email/password sign-in enabled. Only that email can access `/admin`; do not enable public admin sign-up.
-5. Start the app with `npm run dev`, then sign in to `/admin` and use **Products → Add product** to upload covers, up to three preview images, and the private PDF edition. The admin panel stores covers/previews in the public `product-covers` bucket and PDFs in the private `digital-editions` bucket.
+1. Install the project dependencies with `npm install`.
+2. Keep the AWS and Razorpay credentials in the ignored `.env.local` file. The app uses `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_COGNITO_USER_POOL_ID`, `AWS_COGNITO_CLIENT_ID`, `AWS_S3_BUCKET`, `AWS_SES_FROM_EMAIL`, `ADMIN_EMAIL`, and the four `DYNAMODB_*_TABLE` values.
+3. Run `node scripts/setup-aws.js`. The script loads `.env.local`, creates or reuses the four DynamoDB tables, the S3 bucket, the Cognito pool/client, requests SES sender verification, and prints the AWS values for `.env.local`. It is safe to rerun.
+4. Follow the SES verification email before sending store mail.
+5. Start the app with `npm run dev`. Register the `ADMIN_EMAIL` address at `/my-library`, verify it using the emailed code, then sign in to `/admin`.
 
-The app uses Next.js 16's `proxy.ts` convention for early redirects and verifies the user again on every admin page and mutation.
+The setup script grants public object reads only for `covers/`, `previews/`, and `logos/`; uploaded PDFs remain private and are served through short-lived signed URLs after purchase verification. Product data, users, orders, and store settings are stored in DynamoDB.
 
-The Supabase service-role key and Razorpay secrets are server-only. Never prefix them with `NEXT_PUBLIC_` or expose them to the browser. The Razorpay key ID is public by design. Test mode accepts the legacy `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` pair, or the `RAZORPAY_TEST_KEY_ID` / `RAZORPAY_TEST_KEY_SECRET` pair. Live mode requires `RAZORPAY_LIVE_KEY_ID` and `RAZORPAY_LIVE_KEY_SECRET`; the mode selector never stores secrets in the database. Keep test credentials selected until your payment account is ready for live transactions.
+## Payments
 
-The six catalog entries are sample product records with Picsum cover art and no edition PDFs. Checkout intentionally refuses to charge unless each selected edition has an uploaded file in the private Supabase bucket and a matching `products.file_url`. Replace sample content or publish finished editions before launch.
+Checkout uses Razorpay. Keep `NEXT_PUBLIC_RAZORPAY_MODE=test` until you are ready for live transactions. Test mode uses `NEXT_PUBLIC_RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (or the optional `RAZORPAY_TEST_KEY_ID` / `RAZORPAY_TEST_KEY_SECRET` pair); live mode uses `RAZORPAY_LIVE_KEY_ID` and `RAZORPAY_LIVE_KEY_SECRET`. Secret keys are server-only and are never saved in DynamoDB.
 
 ## Included flows
 
-- Browse, search, filter, sort, and view the catalog; admin-created products are loaded from Supabase.
-- Add products to a local cart and proceed through Razorpay Checkout.
-- Create or sign in to a Supabase account and view verified purchases.
-- Verify Razorpay signatures on the server, store purchases with the service-role key, and issue short-lived signed links for private files.
-- Manage products, customers, orders/refunds, analytics, and store configuration from the administrator panel.
+- Browse, search, filter, sort, and view products stored in DynamoDB.
+- Create products in the admin panel and upload cover art, previews, and private PDF editions to S3.
+- Register and sign in with Amazon Cognito, then view paid purchases in My Library.
+- Verify Razorpay payments on the server and issue expiring S3 download links to verified purchasers.
+- Manage products, customers, orders/refunds, analytics, and store settings from the admin panel.
+
+There are no seeded or sample products. Add real product records and files through `/admin/products` before customers can shop.
 
 ## Checks
 

@@ -2,7 +2,7 @@ import AdminPageHeader from "../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../components/admin/AdminShell";
 import OrdersTable from "../../../components/admin/OrdersTable";
 import { fetchAdminOrders } from "../../../lib/admin-data";
-import { requireAdmin } from "../../../lib/supabase-server";
+import { requireAdmin } from "../../../lib/auth";
 
 export default async function AdminOrdersPage() {
   await requireAdmin();

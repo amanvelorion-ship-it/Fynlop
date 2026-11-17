@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { signInAdmin } from "../../app/admin/actions";
 
-export default function AdminLoginForm() {
+export default function AdminLoginForm({ email }: { email: string }) {
   const [state, action, pending] = useActionState(signInAdmin, {});
 
   return (
@@ -15,7 +15,7 @@ export default function AdminLoginForm() {
           type="email"
           autoComplete="username"
           required
-          defaultValue="aman.velorion@gmail.com"
+          defaultValue={email}
         />
       </label>
       <label>

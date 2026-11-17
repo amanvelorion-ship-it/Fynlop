@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { Product } from "../types";
 import AddToCartButton from "./AddToCartButton";
@@ -13,7 +14,7 @@ export default function ProductCard({ product }: { product: Product }) {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      whileHover={{ y: -7, scale: 1.015 }}
+      whileHover={{ y: -7, scale: 1.02 }}
     >
       <Link
         className="product-cover"
@@ -24,7 +25,7 @@ export default function ProductCard({ product }: { product: Product }) {
         aria-label={`View ${product.title}`}
       >
         <span className="category-badge">{product.category}</span>
-        <span className="cover-view">View story <span aria-hidden="true">↗</span></span>
+        <span className="cover-view">View story <ArrowUpRight aria-hidden="true" size={16} /></span>
       </Link>
       <div className="product-info">
         <div className="product-meta">
