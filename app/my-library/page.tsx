@@ -75,6 +75,27 @@ export default function MyLibraryPage() {
     return payload;
   }
 
+  async function resendConfirmationCode() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend", email }),
+      });
+      const payload = (await response.json()) as AuthResponse;
+      if (!response.ok) throw new Error(payload.error ?? "Could not resend your verification code.");
+      setNotice("A new verification code has been sent to your email.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not resend your verification code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -102,7 +123,11 @@ export default function MyLibraryPage() {
       const result = await authenticate(mode);
       if (result.confirmationRequired) {
         setConfirmationRequired(true);
-        setNotice("Check your inbox for the verification code to finish creating your account.");
+        setNotice(
+          mode === "sign-up"
+            ? "Check your inbox for the verification code. If you already started signup, a new code was sent."
+            : "This account needs email verification. Enter your code or request a new one below.",
+        );
       } else if (result.user) {
         setUser(result.user);
         setEmail(result.user.email);
@@ -255,6 +280,14 @@ export default function MyLibraryPage() {
                 {busy ? "One moment…" : confirmationRequired ? "Verify and sign in" : mode === "sign-in" ? "Sign in" : "Create account"}
                 {busy ? <LoaderCircle className="spin" size={16} /> : <ArrowRight size={16} />}
               </button>
+              {confirmationRequired && (
+                <p className="auth-switch">
+                  Didn’t receive the code?{" "}
+                  <button type="button" onClick={resendConfirmationCode} disabled={busy}>
+                    Resend verification code
+                  </button>
+                </p>
+              )}
             </form>
             {!confirmationRequired && (
               <p className="auth-switch">

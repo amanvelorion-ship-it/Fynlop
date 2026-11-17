@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import {
   confirmCognitoSignUp,
   getUserFromAccessToken,
+  resendCognitoConfirmationCode,
   signInWithCognito,
   signUpWithCognito,
 } from "../../../lib/cognito";
@@ -17,6 +18,10 @@ type AuthBody = {
 
 function isEmail(value: unknown): value is string {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isCognitoError(error: unknown, name: string): boolean {
+  return error instanceof Error && error.name === name;
 }
 
 function errorResponse(error: unknown) {
@@ -48,12 +53,34 @@ export async function POST(request: Request) {
       return Response.json({ confirmed: true });
     }
 
+    if (body.action === "resend") {
+      await resendCognitoConfirmationCode(email);
+      return Response.json({ confirmationRequired: true });
+    }
+
     if (typeof body.password !== "string" || body.password.length < 8) {
       return Response.json({ error: "Your password must be at least 8 characters." }, { status: 400 });
     }
 
     if (body.action === "sign-up") {
-      const signup = await signUpWithCognito(email, body.password);
+      let signup;
+      try {
+        signup = await signUpWithCognito(email, body.password);
+      } catch (error) {
+        if (!isCognitoError(error, "UsernameExistsException")) throw error;
+        try {
+          await resendCognitoConfirmationCode(email);
+        } catch (resendError) {
+          if (isCognitoError(resendError, "NotAuthorizedException")) {
+            return Response.json(
+              { error: "This account is already verified. Sign in instead." },
+              { status: 409 },
+            );
+          }
+          throw resendError;
+        }
+        return Response.json({ confirmationRequired: true });
+      }
       if (!signup.confirmed) {
         return Response.json({ confirmationRequired: true });
       }
@@ -61,7 +88,15 @@ export async function POST(request: Request) {
       return Response.json({ error: "Choose sign in or create an account." }, { status: 400 });
     }
 
-    const session = await signInWithCognito(email, body.password);
+    let session;
+    try {
+      session = await signInWithCognito(email, body.password);
+    } catch (error) {
+      if (body.action === "sign-in" && isCognitoError(error, "UserNotConfirmedException")) {
+        return Response.json({ confirmationRequired: true });
+      }
+      throw error;
+    }
     const user = await getUserFromAccessToken(session.accessToken);
     if (!user) {
       throw new Error("Cognito could not verify the new session.");

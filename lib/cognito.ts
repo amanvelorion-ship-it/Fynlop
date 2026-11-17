@@ -7,6 +7,7 @@ import {
   GetUserCommand,
   InitiateAuthCommand,
   ListUsersCommand,
+  ResendConfirmationCodeCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognito, requiredEnvironmentVariable } from "./aws-config";
@@ -58,6 +59,15 @@ export async function confirmCognitoSignUp(email: string, code: string): Promise
       ClientId: clientId(),
       Username: email,
       ConfirmationCode: code,
+    }),
+  );
+}
+
+export async function resendCognitoConfirmationCode(email: string): Promise<void> {
+  await cognito.send(
+    new ResendConfirmationCodeCommand({
+      ClientId: clientId(),
+      Username: email,
     }),
   );
 }
