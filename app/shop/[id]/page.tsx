@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ArrowLeft, BookOpen, ShoppingBag } from "lucide-react";
 import { connection } from "next/server";
 import AddToCartButton from "../../../components/AddToCartButton";
+import BookPurchaseButton from "../../../components/BookPurchaseButton";
 import { formatInrPaise } from "../../../lib/currency";
 import { getProduct } from "../../../lib/products";
 
@@ -39,7 +40,7 @@ async function ProductDetails({ id }: { id: string }) {
             <span>one-time · yours to keep in My Library</span>
           </div>
           <div className="detail-actions">
-            <AddToCartButton productId={product.id} buyNow />
+            <BookPurchaseButton productId={product.id} title={product.title} />
             <AddToCartButton productId={product.id} />
           </div>
           <p className="checkout-help">Your private PDF download appears in My Library after payment is verified.</p>

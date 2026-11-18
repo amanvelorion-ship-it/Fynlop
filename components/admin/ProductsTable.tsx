@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Pencil, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Trash2, X } from "lucide-react";
 import {
   deleteProduct,
   setProductFeatured,
+  setProductArchived,
   updateProduct,
 } from "../../app/admin/actions";
 import type { Product, ProductCategory } from "../../types";
@@ -16,6 +17,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
   const [category, setCategory] = useState("All");
   const [editing, setEditing] = useState<Product | null>(null);
   const [message, setMessage] = useState("");
+  const [messageIsError, setMessageIsError] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const visibleProducts = useMemo(() => {
@@ -31,6 +33,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
   function runAction(action: () => Promise<{ error?: string; success?: string }>) {
     startTransition(async () => {
       const result = await action();
+      setMessageIsError(Boolean(result.error));
       setMessage(result.error ?? result.success ?? "");
     });
   }
@@ -38,6 +41,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
   function saveProduct(formData: FormData) {
     startTransition(async () => {
       const result = await updateProduct(formData);
+      setMessageIsError(Boolean(result.error));
       setMessage(result.error ?? result.success ?? "");
       if (result.success) setEditing(null);
     });
@@ -63,12 +67,16 @@ export default function ProductsTable({ products }: { products: Product[] }) {
           {categories.map((item) => <option key={item}>{item}</option>)}
         </select>
       </div>
-      {message && <p className="admin-message" role="status">{message}</p>}
+      {message && (
+        <p className={messageIsError ? "admin-error" : "admin-message"} role={messageIsError ? "alert" : "status"}>
+          {message}
+        </p>
+      )}
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>COVER</th><th>TITLE</th><th>CATEGORY</th><th>PRICE (USD)</th><th>FEATURED</th><th>ACTIONS</th>
+              <th>COVER</th><th>TITLE</th><th>CATEGORY</th><th>PRICE (USD)</th><th>SALE STATUS</th><th>FEATURED</th><th>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -78,6 +86,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                 <td><strong>{product.title}</strong><br /><span className="admin-muted">{product.id}</span></td>
                 <td>{product.category}</td>
                 <td>${product.price_usd.toFixed(2)}</td>
+                <td>{product.archived ? "Archived" : "For sale"}</td>
                 <td>
                   <button
                     className="admin-toggle"
@@ -92,10 +101,18 @@ export default function ProductsTable({ products }: { products: Product[] }) {
                   <div className="admin-table-actions">
                     <button className="admin-button" onClick={() => setEditing(product)}><Pencil size={13} /> Edit</button>
                     <button
+                      className="admin-button"
+                      disabled={pending}
+                      onClick={() => runAction(() => setProductArchived(product.id, !product.archived))}
+                    >
+                      {product.archived ? <ArchiveRestore size={13} /> : <Archive size={13} />}
+                      {product.archived ? "Restore" : "Archive"}
+                    </button>
+                    <button
                       className="admin-button admin-button-danger"
                       disabled={pending}
                       onClick={() => {
-                        if (window.confirm(`Delete “${product.title}”? This does not refund existing orders.`)) {
+                        if (window.confirm(`Permanently delete “${product.title}”? This is only allowed when there is no order history. Archive it instead to preserve customer library access.`)) {
                           runAction(() => deleteProduct(product.id));
                         }
                       }}
@@ -107,7 +124,7 @@ export default function ProductsTable({ products }: { products: Product[] }) {
               </tr>
             ))}
             {!visibleProducts.length && (
-              <tr><td colSpan={6} className="admin-empty">No products match this search.</td></tr>
+              <tr><td colSpan={7} className="admin-empty">No products match this search.</td></tr>
             )}
           </tbody>
         </table>

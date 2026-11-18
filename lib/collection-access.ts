@@ -13,6 +13,22 @@ export function hasCollectionAccess(
   return Number.isFinite(paidThrough) && paidThrough > now;
 }
 
+export function hasOngoingCollectionSubscription(
+  subscription: Pick<
+    CollectionSubscription,
+    "status" | "paid_through" | "last_paid_payment_id"
+  >,
+  now = Date.now(),
+): boolean {
+  return (
+    hasCollectionAccess(subscription, now) ||
+    subscription.status === "created" ||
+    subscription.status === "authenticated" ||
+    subscription.status === "active" ||
+    subscription.status === "payment_failed"
+  );
+}
+
 export function getSubscriptionAccessEnd(
   currentEndSeconds: number | null | undefined,
 ): string | null {

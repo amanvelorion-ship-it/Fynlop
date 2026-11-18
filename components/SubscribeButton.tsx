@@ -1,10 +1,18 @@
 "use client";
 
 import Script from "next/script";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, LoaderCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatInrPaise } from "../lib/currency";
+
+type SubscriptionView = {
+  collectionId: string;
+  status: string;
+  hasAccess: boolean;
+  cancelAtPeriodEnd: boolean;
+  paidThrough: string | null;
+};
 
 export default function SubscribeButton({
   collectionId,
@@ -15,11 +23,41 @@ export default function SubscribeButton({
   collectionTitle: string;
   monthlyPricePaise: number;
 }) {
-  const router = useRouter();
   const [razorpayReady, setRazorpayReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function loadSubscription() {
+      try {
+        const response = await fetch("/api/collections/subscriptions", { cache: "no-store" });
+        if (response.status === 401) return;
+        const payload: unknown = await response.json();
+        if (!response.ok || !Array.isArray(payload)) {
+          throw new Error(
+            typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string"
+              ? payload.error
+              : "Could not check your collection subscription.",
+          );
+        }
+        if (active) {
+          setSubscription(
+            (payload as SubscriptionView[]).find((item) => item.collectionId === collectionId) ?? null,
+          );
+        }
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : "Could not check your subscription.");
+      } finally {
+        if (active) setCheckingSubscription(false);
+      }
+    }
+    void loadSubscription();
+    return () => { active = false; };
+  }, [collectionId]);
 
   async function subscribe() {
     if (!razorpayReady || !window.Razorpay) {
@@ -52,8 +90,14 @@ export default function SubscribeButton({
         name: "FYNLOP",
         description: `${collectionTitle} · monthly collection subscription`,
         prefill: {},
+        image: `${window.location.origin}/fynlop-icon.png`,
         theme: { color: "#FFB800" },
-        modal: { ondismiss: () => setBusy(false) },
+        modal: {
+          confirm_close: true,
+          backdropclose: false,
+          handleback: false,
+          ondismiss: () => setBusy(false),
+        },
         handler: async (payment) => {
           try {
             if (
@@ -80,7 +124,15 @@ export default function SubscribeButton({
                 ? "Authorization received. Your access will appear as soon as Razorpay confirms the first monthly charge."
                 : "Subscription confirmed. Your collection is ready in My Library.",
             );
-            if (!verifyPayload.pending) router.push("/my-library");
+            const subscriptionsResponse = await fetch("/api/collections/subscriptions", { cache: "no-store" });
+            if (subscriptionsResponse.ok) {
+              const subscriptionsPayload: unknown = await subscriptionsResponse.json();
+              if (Array.isArray(subscriptionsPayload)) {
+                setSubscription(
+                  (subscriptionsPayload as SubscriptionView[]).find((item) => item.collectionId === collectionId) ?? null,
+                );
+              }
+            }
           } catch (reason) {
             setError(
               reason instanceof Error
@@ -91,6 +143,13 @@ export default function SubscribeButton({
             setBusy(false);
           }
         },
+      });
+      checkout.on("payment.failed", (payment) => {
+        setError(
+          payment.error?.description ??
+            payment.error?.reason ??
+            "Razorpay could not complete the payment. Please try again.",
+        );
       });
       checkout.open();
     } catch (reason) {
@@ -116,14 +175,37 @@ export default function SubscribeButton({
       </p>
       {error && <p className="checkout-error" role="alert">{error}</p>}
       {notice && <p className="checkout-success" role="status">{notice}</p>}
-      <button
-        className="button button-gold"
-        onClick={() => void subscribe()}
-        disabled={busy || !razorpayReady}
-      >
-        {busy ? <><LoaderCircle className="spin" size={16} /> Processing…</> : "Subscribe monthly"}
-        {!busy && <ArrowRight size={16} />}
-      </button>
+      {checkingSubscription ? (
+        <p className="checkout-help"><LoaderCircle className="spin" size={14} /> Checking your subscription…</p>
+      ) : subscription?.hasAccess ? (
+        <div className="collection-owned-state">
+          <p>
+            {subscription.cancelAtPeriodEnd
+              ? `Renewal cancelled · access until ${subscription.paidThrough ? new Date(subscription.paidThrough).toLocaleDateString() : "the paid period ends"}.`
+              : "Your subscription is active. New releases are included."}
+          </p>
+          <Link className="text-link" href="/my-library">Manage in My Library <ArrowRight size={14} /></Link>
+        </div>
+      ) : subscription?.status === "payment_failed" ? (
+        <div className="collection-owned-state">
+          <p>Your subscription has a payment issue. Manage it before starting another.</p>
+          <Link className="text-link" href="/my-library">Manage in My Library <ArrowRight size={14} /></Link>
+        </div>
+      ) : (
+        <>
+          <button
+            className="button button-gold"
+            onClick={() => void subscribe()}
+            disabled={busy || !razorpayReady}
+          >
+            {busy ? <><LoaderCircle className="spin" size={16} /> Opening secure checkout…</> : "Subscribe monthly"}
+            {!busy && <ArrowRight size={16} />}
+          </button>
+          {error.includes("Sign in") && (
+            <Link className="text-link collection-signin-link" href="/my-library">Sign in to continue <ArrowRight size={14} /></Link>
+          )}
+        </>
+      )}
     </div>
   );
 }

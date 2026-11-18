@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, Menu, ShoppingBag, X } from "lucide-react";
 import { readCart, subscribeToCart } from "../lib/cart";
+import CheckoutModal from "./CheckoutModal";
 
 type AuthResponse = { user?: { id: string; email: string } | null; error?: string };
 
@@ -13,6 +14,17 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [accountStatus, setAccountStatus] = useState<"checking" | "signed-in" | "signed-out">("checking");
   const [cartCount, setCartCount] = useState(0);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const openCart = useCallback(() => setCartOpen(true), []);
+  const closeCart = useCallback(() => setCartOpen(false), []);
+
+  /* Open the cart drawer when a book is added from the catalog. */
+  useEffect(() => {
+    const handler = () => setCartOpen(true);
+    window.addEventListener("fynlop:open-checkout", handler);
+    return () => window.removeEventListener("fynlop:open-checkout", handler);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -58,39 +70,46 @@ export default function Navbar() {
   ];
 
   return (
-    <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
-      <div className="nav-inner">
-        <Link className="brand" href="/" aria-label="Fynlop home">
-          <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} priority />
-        </Link>
-        <nav className={`nav-links${menuOpen ? " nav-open" : ""}`} aria-label="Main navigation">
-          {links.map((link) => (
-            <Link href={link.href} key={link.label} onClick={() => setMenuOpen(false)}>
-              {link.label}
+    <>
+      <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
+        <div className="nav-inner">
+          <Link className="brand" href="/" aria-label="Fynlop home">
+            <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} priority />
+          </Link>
+          <nav className={`nav-links${menuOpen ? " nav-open" : ""}`} aria-label="Main navigation">
+            {links.map((link) => (
+              <Link href={link.href} key={link.label} onClick={() => setMenuOpen(false)}>
+                {link.label}
+              </Link>
+            ))}
+            <Link className="mobile-nav-link" href="/my-library" onClick={() => setMenuOpen(false)}>My library</Link>
+          </nav>
+          <div className="nav-actions">
+            <button
+              className="cart-link"
+              onClick={openCart}
+              aria-label={`Cart with ${cartCount} books`}
+            >
+              <ShoppingBag aria-hidden="true" />
+              {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+            </button>
+            <Link className="nav-library" href="/my-library">My library</Link>
+            <Link className="nav-account" href="/my-library">
+              {accountStatus === "signed-out" ? "Sign in" : "Account"}
+              <ArrowUpRight aria-hidden="true" size={14} />
             </Link>
-          ))}
-          <Link className="mobile-nav-link" href="/my-library" onClick={() => setMenuOpen(false)}>My library</Link>
-        </nav>
-        <div className="nav-actions">
-          <Link className="cart-link" href="/checkout" aria-label={`Cart with ${cartCount} books`}>
-            <ShoppingBag aria-hidden="true" />
-            {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
-          </Link>
-          <Link className="nav-library" href="/my-library">My library</Link>
-          <Link className="nav-account" href="/my-library">
-            {accountStatus === "signed-out" ? "Sign in" : "Account"}
-            <ArrowUpRight aria-hidden="true" size={14} />
-          </Link>
-          <button
-            className={`menu-toggle${menuOpen ? " menu-active" : ""}`}
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+            <button
+              className={`menu-toggle${menuOpen ? " menu-active" : ""}`}
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <CheckoutModal open={cartOpen} onClose={closeCart} />
+    </>
   );
 }

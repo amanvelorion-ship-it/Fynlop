@@ -1,28 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import { setCollectionContentPublication } from "../../app/admin/collections/actions";
+import { Trash2 } from "lucide-react";
+import {
+  deleteCollectionContent,
+  setCollectionContentPublication,
+} from "../../app/admin/collections/actions";
 
 export default function CollectionContentActions({
   collectionId,
   contentId,
+  title,
   published,
 }: {
   collectionId: string;
   contentId: string;
+  title: string;
   published: boolean;
 }) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [hasError, setHasError] = useState(false);
 
   async function update(action: "publish-now" | "draft") {
     setBusy(true);
-    setError("");
+    setMessage("");
     try {
       const result = await setCollectionContentPublication(collectionId, contentId, action);
-      if (result.error) throw new Error(result.error);
+      setHasError(Boolean(result.error));
+      setMessage(result.error ?? result.success ?? "");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not update release.");
+      setHasError(true);
+      setMessage(reason instanceof Error ? reason.message : "Could not update release.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await deleteCollectionContent(collectionId, contentId);
+      setHasError(Boolean(result.error));
+      setMessage(result.error ?? result.success ?? "");
+    } catch (reason) {
+      setHasError(true);
+      setMessage(reason instanceof Error ? reason.message : "Could not remove release.");
     } finally {
       setBusy(false);
     }
@@ -37,7 +61,22 @@ export default function CollectionContentActions({
       >
         {busy ? "Saving…" : published ? "Save as draft" : "Publish now"}
       </button>
-      {error && <span className="admin-error" role="alert">{error}</span>}
+      <button
+        className="admin-button admin-button-danger"
+        onClick={() => {
+          if (window.confirm(`Permanently remove “${title}” and its uploaded file? Published content remains protected while subscribers have paid access.`)) {
+            void remove();
+          }
+        }}
+        disabled={busy}
+      >
+        <Trash2 size={13} /> Delete
+      </button>
+      {message && (
+        <span className={hasError ? "admin-error" : "admin-message"} role={hasError ? "alert" : "status"}>
+          {message}
+        </span>
+      )}
     </div>
   );
 }

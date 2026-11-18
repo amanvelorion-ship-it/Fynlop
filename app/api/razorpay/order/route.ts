@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       getStoreSettings(),
       getOrdersByUser(user.id),
     ]);
-    if (products.some((product) => !product || !product.file_url)) {
+    if (products.some((product) => !product || product.archived || !product.file_url)) {
       return Response.json({ error: "One or more selected books are unavailable." }, { status: 404 });
     }
     const alreadyPurchased = new Set(

@@ -6,6 +6,7 @@ import CollectionContentForm from "../../../../components/admin/CollectionConten
 import CollectionForm from "../../../../components/admin/CollectionForm";
 import AdminPageHeader from "../../../../components/admin/AdminPageHeader";
 import AdminShell from "../../../../components/admin/AdminShell";
+import DeleteCollectionButton from "../../../../components/admin/DeleteCollectionButton";
 import RefundSubscriptionPaymentButton from "../../../../components/admin/RefundSubscriptionPaymentButton";
 import { requireAdmin } from "../../../../lib/auth";
 import { getCurrentTimestamp, hasCollectionAccess } from "../../../../lib/collection-access";
@@ -64,8 +65,25 @@ export default async function CollectionAdminDetailPage({
         eyebrow="COLLECTION MANAGEMENT"
         title={collection.title}
         description="Update pricing, publish releases, and review subscription activity."
-        action={<Link className="admin-button" href="/admin/collections"><ArrowLeft size={15} /> Collections</Link>}
+        action={
+          <div className="admin-table-actions">
+            <Link className="admin-button" href="/admin/collections"><ArrowLeft size={15} /> Collections</Link>
+            {collection.status === "draft" && subscriptions.length === 0 && (
+              <DeleteCollectionButton collectionId={id} title={collection.title} />
+            )}
+          </div>
+        }
       />
+      {collection.status !== "draft" && (
+        <p className="admin-muted">
+          To permanently delete this collection, first set it to Draft. Collections with subscriber history cannot be deleted.
+        </p>
+      )}
+      {subscriptions.length > 0 && (
+        <p className="admin-muted">
+          Subscription and billing history is preserved. This collection can only be archived after active, pending, and retrying subscriptions end and paid access expires.
+        </p>
+      )}
       <section className="collection-admin-summary">
         <article><span>Paid access</span><strong>{active}</strong></article>
         <article><span>Payment failed</span><strong>{failed}</strong></article>
@@ -92,6 +110,7 @@ export default async function CollectionAdminDetailPage({
                 <CollectionContentActions
                   collectionId={id}
                   contentId={release.id}
+                  title={release.title}
                   published={release.published}
                 />
               </article>

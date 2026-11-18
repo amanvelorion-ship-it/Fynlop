@@ -74,7 +74,7 @@ export default function CollectionForm({ collection }: { collection?: Collection
           </label>
         </div>
         <p className="admin-muted">
-          Each collection has one monthly Razorpay plan. Price changes apply to new subscriptions; existing subscribers keep their authorized price.
+          Each collection has one monthly Razorpay plan. Price changes apply to new subscriptions; existing subscribers keep their authorized price. Archiving removes a collection from the storefront; active, pending, and retrying subscriptions must end and paid access must expire first.
         </p>
       </div>
       {state.error && <p className="admin-error" role="alert">{state.error}</p>}

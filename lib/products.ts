@@ -9,12 +9,19 @@ function withoutPrivateFile(product: Product): Product {
   return publicProduct;
 }
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(includeArchived = false): Promise<Product[]> {
   const products = await getStoredProducts();
-  return products.map(withoutPrivateFile);
+  return products
+    .filter((product) => includeArchived || !product.archived)
+    .map(withoutPrivateFile);
 }
 
-export async function getProduct(id: string): Promise<Product | null> {
+export async function getProduct(
+  id: string,
+  includeArchived = false,
+): Promise<Product | null> {
   const product = await getStoredProduct(id);
-  return product ? withoutPrivateFile(product) : null;
+  return product && (includeArchived || !product.archived)
+    ? withoutPrivateFile(product)
+    : null;
 }

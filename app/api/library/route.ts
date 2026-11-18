@@ -13,7 +13,7 @@ export async function GET() {
     const purchasedIds = new Set(
       orders.filter((order) => order.status === "paid").map((order) => order.product_id),
     );
-    const products = await getProducts();
+    const products = await getProducts(true);
     return Response.json(products.filter((product) => purchasedIds.has(product.id)));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load your library.";

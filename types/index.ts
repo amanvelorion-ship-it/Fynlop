@@ -13,6 +13,7 @@ export type Product = {
   popularity: number;
   created_at: string;
   featured: boolean;
+  archived?: boolean;
   preview_images?: string[];
   file_url?: string | null;
 };

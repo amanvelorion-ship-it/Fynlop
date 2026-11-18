@@ -174,9 +174,19 @@ select:focus-visible {
 .cart-link {
   width: 34px;
   height: 36px;
+  padding: 0;
   position: relative;
   display: grid;
   place-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
 .cart-link svg {
@@ -1691,5 +1701,169 @@ select:focus-visible {
 
   .subscription-library-actions {
     align-items: flex-start;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════
+   Checkout Modal / Cart Drawer
+   ═══════════════════════════════════════════════ */
+
+.checkout-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.checkout-modal-drawer {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 999;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-50%);
+  background: var(--bg-primary);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 70px rgba(0, 0, 0, 0.65);
+  animation: checkoutModalEnter 0.2s ease;
+}
+
+.checkout-modal-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.checkout-modal-header h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.checkout-modal-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.checkout-modal-close:hover {
+  color: var(--white);
+  border-color: var(--white);
+}
+
+.checkout-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.checkout-modal-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 48px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.checkout-modal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--muted);
+}
+
+.checkout-modal-empty h3 {
+  margin: 16px 0 6px;
+  color: var(--white);
+  font-size: 16px;
+}
+
+.checkout-modal-empty p {
+  margin: 0 0 20px;
+  font-size: 12px;
+}
+
+.checkout-modal-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-modal-items .checkout-book:first-child {
+  padding-top: 0;
+}
+
+.checkout-modal-footer {
+  flex: 0 0 auto;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.checkout-modal-summary .summary-item {
+  padding: 10px 0;
+  font-size: 11px;
+}
+
+.checkout-modal-summary .summary-total {
+  padding-top: 14px;
+}
+
+.checkout-modal-footer .checkout-help {
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+.checkout-modal-footer .payment-button {
+  margin-top: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes checkoutModalEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (max-width: 500px) {
+  .checkout-modal-drawer {
+    top: 12px;
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
   }
 }

@@ -169,6 +169,50 @@ export async function putCollectionContent(content: CollectionContent): Promise<
   );
 }
 
+export async function deleteCollectionContent(
+  collectionId: string,
+  id: string,
+): Promise<void> {
+  await dynamo.send(
+    new DeleteCommand({
+      TableName: tableNames.products,
+      Key: collectionContentKey(collectionId, id),
+      ConditionExpression: "attribute_exists(PK)",
+    }),
+  );
+}
+
+export async function deleteCollectionWithContent(
+  id: string,
+  contentIds: string[],
+): Promise<void> {
+  if (contentIds.length > 99) {
+    throw new Error("A collection with more than 99 releases cannot be permanently deleted in one operation.");
+  }
+  await dynamo.send(
+    new TransactWriteCommand({
+      TransactItems: [
+        {
+          Delete: {
+            TableName: tableNames.products,
+            Key: collectionKey(id),
+            ConditionExpression: "#status = :draft",
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: { ":draft": "draft" },
+          },
+        },
+        ...contentIds.map((contentId) => ({
+          Delete: {
+            TableName: tableNames.products,
+            Key: collectionContentKey(id, contentId),
+            ConditionExpression: "attribute_exists(PK)",
+          },
+        })),
+      ],
+    }),
+  );
+}
+
 export async function getProducts(): Promise<Product[]> {
   const products: Product[] = [];
   let ExclusiveStartKey: Record<string, unknown> | undefined;
@@ -225,6 +269,28 @@ export async function getOrders(): Promise<Order[]> {
     { ":sk": "ORDER#" },
   );
   return orders.sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export async function hasProductOrderHistory(productId: string): Promise<boolean> {
+  let ExclusiveStartKey: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamo.send(
+      new ScanCommand({
+        TableName: tableNames.orders,
+        FilterExpression: "begins_with(SK, :sk) AND product_id = :productId",
+        ExpressionAttributeValues: {
+          ":sk": "ORDER#",
+          ":productId": productId,
+        },
+        ProjectionExpression: "PK",
+        Limit: 100,
+        ExclusiveStartKey,
+      }),
+    );
+    if (result.Items?.length) return true;
+    ExclusiveStartKey = result.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  return false;
 }
 
 export async function getOrdersByUser(userId: string): Promise<Order[]> {

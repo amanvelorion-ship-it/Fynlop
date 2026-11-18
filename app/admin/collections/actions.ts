@@ -5,10 +5,14 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../../lib/auth";
 import {
   getCollection,
+  getCollectionContent,
   getCollectionContentById,
   getCollectionSubscriptionByGatewayId,
   getCollectionSubscriptionPayment,
   getCollectionSubscriptionPayments,
+  getCollectionSubscriptionsByCollection,
+  deleteCollectionContent as removeCollectionContent,
+  deleteCollectionWithContent,
   putCollection,
   putCollectionContent,
   saveCollectionSubscription,
@@ -17,8 +21,10 @@ import {
 import {
   deleteFiles,
   getPublicFileUrl,
+  getUploadedFileKey,
   uploadFile,
 } from "../../../lib/s3";
+import { hasOngoingCollectionSubscription } from "../../../lib/collection-access";
 import {
   getSubscriptionAccessAfterRefund,
 } from "../../../lib/collection-subscription-state";
@@ -154,6 +160,14 @@ export async function updateCollection(
   ) {
     return { error: "Check the collection details and cover image. Covers must be images under 3 MB." };
   }
+  if (status !== "published") {
+    const subscriptions = await getCollectionSubscriptionsByCollection(id);
+    if (subscriptions.some((subscription) => hasOngoingCollectionSubscription(subscription))) {
+      return {
+        error: "This collection has active, pending, or retrying subscriptions. Keep it published until they are cancelled or finished and paid access expires.",
+      };
+    }
+  }
 
   let coverImageUrl = existing.cover_image_url;
   let uploadedKey: string | null = null;
@@ -275,6 +289,17 @@ export async function setCollectionContentPublication(
   await requireAdmin();
   const content = await getCollectionContentById(collectionId, contentId);
   if (!content) return { error: "This collection release no longer exists." };
+  const releaseTime = Date.parse(content.release_at);
+  const isAlreadyReleased =
+    content.published && (!Number.isFinite(releaseTime) || releaseTime <= Date.now());
+  if (action === "draft" && isAlreadyReleased) {
+    const subscriptions = await getCollectionSubscriptionsByCollection(collectionId);
+    if (subscriptions.some((subscription) => hasOngoingCollectionSubscription(subscription))) {
+      return {
+        error: "This release is already available to subscribers. It cannot be unpublished while subscriptions are active, pending, retrying, or have paid access.",
+      };
+    }
+  }
   const updated: CollectionContent = {
     ...content,
     published: action !== "draft",
@@ -288,6 +313,93 @@ export async function setCollectionContentPublication(
   revalidatePath(`/admin/collections/${collectionId}`);
   revalidatePath(`/collections/${collectionId}`);
   return { success: action === "draft" ? "Release saved as a draft." : "Release schedule updated." };
+}
+
+export async function deleteCollectionContent(
+  collectionId: string,
+  contentId: string,
+): Promise<CollectionActionState> {
+  await requireAdmin();
+  const content = await getCollectionContentById(collectionId, contentId);
+  if (!content) return { error: "This collection release no longer exists." };
+
+  const releaseTime = Date.parse(content.release_at);
+  const isAlreadyReleased =
+    content.published && (!Number.isFinite(releaseTime) || releaseTime <= Date.now());
+  if (isAlreadyReleased) {
+    const subscriptions = await getCollectionSubscriptionsByCollection(collectionId);
+    if (subscriptions.some((subscription) => hasOngoingCollectionSubscription(subscription))) {
+      return {
+        error: "This release is available to customers with active, pending, or retrying subscriptions and cannot be deleted yet.",
+      };
+    }
+  }
+
+  try {
+    await removeCollectionContent(collectionId, contentId);
+  } catch (error) {
+    return { error: `Could not remove release: ${getErrorMessage(error, "DynamoDB request failed.")}` };
+  }
+
+  revalidatePath(`/admin/collections/${collectionId}`);
+  revalidatePath(`/collections/${collectionId}`);
+  try {
+    await deleteFiles([content.file_key]);
+  } catch (error) {
+    return {
+      success: `Release removed, but its stored file could not be deleted: ${getErrorMessage(error, "S3 request failed.")}`,
+    };
+  }
+  return { success: "Release and its stored file deleted." };
+}
+
+export async function deleteCollection(
+  collectionId: string,
+): Promise<CollectionActionState> {
+  await requireAdmin();
+  const collection = await getCollection(collectionId);
+  if (!collection) return { error: "This collection no longer exists." };
+  if (collection.status !== "draft") {
+    return { error: "Only draft collections can be permanently deleted. Set the collection to Draft first." };
+  }
+
+  const subscriptions = await getCollectionSubscriptionsByCollection(collectionId);
+  if (subscriptions.length) {
+    return {
+      error: "This collection has subscription history and cannot be permanently deleted. Archive it to preserve billing records.",
+    };
+  }
+
+  const content = await getCollectionContent(collectionId);
+  if (content.length > 99) {
+    return {
+      error: "This collection has more than 99 releases and cannot be permanently deleted in one operation. Archive it instead.",
+    };
+  }
+
+  try {
+    await deleteCollectionWithContent(collectionId, content.map((release) => release.id));
+  } catch (error) {
+    return { error: `Could not delete collection: ${getErrorMessage(error, "DynamoDB request failed.")}` };
+  }
+
+  revalidatePath("/admin/collections");
+  revalidatePath("/shop");
+  revalidatePath(`/collections/${collectionId}`);
+  revalidatePath("/");
+
+  const keys = [
+    getUploadedFileKey(collection.cover_image_url),
+    ...content.map((release) => release.file_key),
+  ].filter((key): key is string => key !== null);
+  try {
+    await deleteFiles(keys);
+  } catch (error) {
+    return {
+      error: `Collection was deleted, but some stored files could not be removed: ${getErrorMessage(error, "S3 request failed.")}`,
+    };
+  }
+  return { success: "Collection, releases, and stored files deleted." };
 }
 
 export async function refundCollectionSubscriptionPayment(paymentId: string): Promise<void> {

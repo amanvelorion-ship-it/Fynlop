@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { authCookieName, requireAdmin } from "../../lib/auth";
 import {
   getOrderById,
+  hasProductOrderHistory,
   getProduct,
   getStoreSettings,
   deleteProduct as removeProduct,
@@ -116,10 +117,16 @@ export async function updateProduct(formData: FormData) {
 
 export async function deleteProduct(id: string) {
   await requireAdmin();
-  const product = await getProduct(id);
-  if (!product) return { error: "This product no longer exists." };
-
+  let product: Product;
   try {
+    const existing = await getProduct(id);
+    if (!existing) return { error: "This product no longer exists." };
+    product = existing;
+    if (await hasProductOrderHistory(id)) {
+      return {
+        error: "This book has order history and cannot be permanently deleted. Archive it to remove it from sale while preserving customers’ library access.",
+      };
+    }
     await removeProduct(id);
   } catch (error) {
     return { error: `Could not delete product: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
@@ -130,6 +137,9 @@ export async function deleteProduct(id: string) {
     getUploadedFileKey(product.file_url),
     ...(product.preview_images || []).map(getUploadedFileKey),
   ].filter((key): key is string => key !== null);
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  revalidatePath("/");
   try {
     await deleteFiles(keys);
   } catch (error) {
@@ -138,10 +148,24 @@ export async function deleteProduct(id: string) {
     };
   }
 
+  return { success: "Product and its stored files deleted." };
+}
+
+export async function setProductArchived(id: string, archived: boolean) {
+  await requireAdmin();
+  try {
+    const product = await getProduct(id);
+    if (!product) return { error: "This product no longer exists." };
+    await putProduct({ ...product, archived });
+  } catch (error) {
+    return { error: `Could not update sale status: ${awsErrorMessage(error, "DynamoDB request failed.")}` };
+  }
   revalidatePath("/admin/products");
   revalidatePath("/shop");
+  revalidatePath(`/shop/${id}`);
+  revalidatePath("/api/products");
   revalidatePath("/");
-  return { success: "Product and its stored files deleted." };
+  return { success: archived ? "Book archived from sale. Existing library access is unchanged." : "Book restored to sale." };
 }
 
 export async function setProductFeatured(id: string, featured: boolean) {
