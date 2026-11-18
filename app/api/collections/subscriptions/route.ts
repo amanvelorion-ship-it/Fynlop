@@ -20,7 +20,11 @@ export async function GET() {
           getCollectionSubscriptionPayments(subscription.razorpay_subscription_id),
         ]);
         const now = Date.now();
+        const hasPaidHistory =
+          Boolean(subscription.last_paid_payment_id) ||
+          payments.some((payment) => payment.status !== "failed");
         return {
+          hasPaidHistory,
           id: subscription.id,
           collectionId: subscription.collection_id,
           collectionTitle: subscription.collection_title,
@@ -44,7 +48,12 @@ export async function GET() {
         };
       }),
     );
-    return Response.json(items, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      items
+        .filter((item) => item.hasPaidHistory || item.status === "payment_failed")
+        .map(({ hasPaidHistory: _hasPaidHistory, ...item }) => item),
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load your subscriptions.";
     return Response.json({ error: message }, { status: 500 });

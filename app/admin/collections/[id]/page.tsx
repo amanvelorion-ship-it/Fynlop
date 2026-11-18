@@ -9,7 +9,11 @@ import AdminShell from "../../../../components/admin/AdminShell";
 import DeleteCollectionButton from "../../../../components/admin/DeleteCollectionButton";
 import RefundSubscriptionPaymentButton from "../../../../components/admin/RefundSubscriptionPaymentButton";
 import { requireAdmin } from "../../../../lib/auth";
-import { getCurrentTimestamp, hasCollectionAccess } from "../../../../lib/collection-access";
+import {
+  getCurrentTimestamp,
+  hasCollectionAccess,
+  hasOngoingCollectionSubscription,
+} from "../../../../lib/collection-access";
 import { formatInrPaise } from "../../../../lib/currency";
 import {
   getCollection,
@@ -58,6 +62,12 @@ export default async function CollectionAdminDetailPage({
   const expired = subscriptions.filter(
     (item) => item.paid_through && Date.parse(item.paid_through) <= now,
   ).length;
+  const canPermanentlyDelete =
+    collection.status === "draft" &&
+    !subscriptions.some((subscription) =>
+      hasOngoingCollectionSubscription(subscription, now),
+    ) &&
+    payments.length === 0;
 
   return (
     <AdminShell>
@@ -68,7 +78,7 @@ export default async function CollectionAdminDetailPage({
         action={
           <div className="admin-table-actions">
             <Link className="admin-button" href="/admin/collections"><ArrowLeft size={15} /> Collections</Link>
-            {collection.status === "draft" && subscriptions.length === 0 && (
+            {canPermanentlyDelete && (
               <DeleteCollectionButton collectionId={id} title={collection.title} />
             )}
           </div>
@@ -76,12 +86,12 @@ export default async function CollectionAdminDetailPage({
       />
       {collection.status !== "draft" && (
         <p className="admin-muted">
-          To permanently delete this collection, first set it to Draft. Collections with subscriber history cannot be deleted.
+          To permanently delete this collection, first set it to Draft. Active subscriptions, paid access, or billing payments must be resolved first.
         </p>
       )}
-      {subscriptions.length > 0 && (
+      {subscriptions.length > 0 && !canPermanentlyDelete && (
         <p className="admin-muted">
-          Subscription and billing history is preserved. This collection can only be archived after active, pending, and retrying subscriptions end and paid access expires.
+          Active, pending, retrying subscriptions and paid access block deletion. Billing payment history is retained; cancelled subscriptions without payment history can be permanently removed.
         </p>
       )}
       <section className="collection-admin-summary">

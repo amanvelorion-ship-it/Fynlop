@@ -17,7 +17,7 @@ export default function DeleteCollectionButton({
   const [error, setError] = useState("");
 
   function remove() {
-    if (!window.confirm(`Permanently delete “${title}” and all its releases? This is only allowed for a draft collection with no subscription history.`)) {
+    if (!window.confirm(`Permanently delete “${title}”, all its releases, and its cancelled subscription records? This cannot be undone. Active subscriptions, paid access, or billing payments prevent deletion.`)) {
       return;
     }
 

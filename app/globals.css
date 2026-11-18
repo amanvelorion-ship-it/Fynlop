@@ -1510,13 +1510,6 @@ select:focus-visible {
   line-height: 1.8;
 }
 
-.collection-detail-price {
-  margin: 24px 0 12px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.collection-detail-price strong,
 .collection-subscribe-price strong {
   color: var(--gold);
   font-size: 28px;

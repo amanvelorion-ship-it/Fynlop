@@ -364,21 +364,36 @@ export async function deleteCollection(
   }
 
   const subscriptions = await getCollectionSubscriptionsByCollection(collectionId);
-  if (subscriptions.length) {
+  if (subscriptions.some((subscription) => hasOngoingCollectionSubscription(subscription))) {
     return {
-      error: "This collection has subscription history and cannot be permanently deleted. Archive it to preserve billing records.",
+      error: "This collection has an active, pending, retrying, or still-paid subscription. Wait until it is cancelled and access expires before deleting.",
+    };
+  }
+
+  const paymentHistory = await Promise.all(
+    subscriptions.map((subscription) =>
+      getCollectionSubscriptionPayments(subscription.razorpay_subscription_id),
+    ),
+  );
+  if (paymentHistory.some((payments) => payments.length > 0)) {
+    return {
+      error: "This collection has billing payment history, which must be retained. It can be archived but not permanently deleted.",
     };
   }
 
   const content = await getCollectionContent(collectionId);
-  if (content.length > 99) {
+  if (1 + content.length + subscriptions.length * 3 > 100) {
     return {
-      error: "This collection has more than 99 releases and cannot be permanently deleted in one operation. Archive it instead.",
+      error: "This collection has too many records to permanently delete in one operation. Archive it instead.",
     };
   }
 
   try {
-    await deleteCollectionWithContent(collectionId, content.map((release) => release.id));
+    await deleteCollectionWithContent(
+      collectionId,
+      content.map((release) => release.id),
+      subscriptions,
+    );
   } catch (error) {
     return { error: `Could not delete collection: ${getErrorMessage(error, "DynamoDB request failed.")}` };
   }

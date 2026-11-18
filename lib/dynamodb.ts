@@ -185,10 +185,14 @@ export async function deleteCollectionContent(
 export async function deleteCollectionWithContent(
   id: string,
   contentIds: string[],
+  subscriptions: CollectionSubscription[],
 ): Promise<void> {
-  if (contentIds.length > 99) {
-    throw new Error("A collection with more than 99 releases cannot be permanently deleted in one operation.");
+  const operationCount = 1 + contentIds.length + subscriptions.length * 3;
+  if (operationCount > 100) {
+    throw new Error("This collection has too many records to permanently delete in one operation.");
   }
+  const now = new Date().toISOString();
+  const terminalStatuses = [":cancelled", ":completed", ":expired"];
   await dynamo.send(
     new TransactWriteCommand({
       TransactItems: [
@@ -208,6 +212,29 @@ export async function deleteCollectionWithContent(
             ConditionExpression: "attribute_exists(PK)",
           },
         })),
+        ...subscriptions.flatMap((subscription) =>
+          [
+            subscriptionUserKey(subscription),
+            subscriptionCollectionKey(subscription),
+            subscriptionGatewayKey(subscription.razorpay_subscription_id),
+          ].map((Key) => ({
+            Delete: {
+              TableName: tableNames.orders,
+              Key,
+              ConditionExpression:
+                `#status IN (${terminalStatuses.join(", ")}) AND ` +
+                "(attribute_not_exists(paid_through) OR paid_through = :null OR paid_through <= :now)",
+              ExpressionAttributeNames: { "#status": "status" },
+              ExpressionAttributeValues: {
+                ":cancelled": "cancelled",
+                ":completed": "completed",
+                ":expired": "expired",
+                ":null": null,
+                ":now": now,
+              },
+            },
+          })),
+        ),
       ],
     }),
   );

@@ -9,7 +9,6 @@ import {
   getPublishedCollection,
   getPublishedCollectionContent,
 } from "../../../lib/collection-catalog";
-import { formatInrPaise } from "../../../lib/currency";
 
 async function CollectionContent({ id }: { id: string }) {
   await connection();
@@ -31,9 +30,6 @@ async function CollectionContent({ id }: { id: string }) {
           <p className="eyebrow"><span className="eyebrow-mark" /> ONGOING COLLECTION · MONTHLY</p>
           <h1>{collection.title}</h1>
           <p>{collection.description}</p>
-          <div className="collection-detail-price">
-            <strong>{formatInrPaise(collection.monthly_price_paise)}</strong><span> / month</span>
-          </div>
           <SubscribeButton
             collectionId={collection.id}
             collectionTitle={collection.title}
