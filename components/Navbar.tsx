@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Menu, X } from "lucide-react";
+import { ArrowUpRight, Menu, ShoppingBag, X } from "lucide-react";
+import { readCart, subscribeToCart } from "../lib/cart";
 
 type AuthResponse = { user?: { id: string; email: string } | null; error?: string };
 
@@ -11,6 +12,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [accountStatus, setAccountStatus] = useState<"checking" | "signed-in" | "signed-out">("checking");
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -32,9 +34,12 @@ export default function Navbar() {
       }
     };
     const handleAuthChange = () => { void updateAuth(); };
+    const updateCart = () => setCartCount(readCart().length);
 
     updateScroll();
     void updateAuth();
+    updateCart();
+    const unsubscribeCart = subscribeToCart(updateCart);
     window.addEventListener("scroll", updateScroll, { passive: true });
     window.addEventListener("fynlop-auth-change", handleAuthChange);
 
@@ -42,12 +47,13 @@ export default function Navbar() {
       active = false;
       window.removeEventListener("scroll", updateScroll);
       window.removeEventListener("fynlop-auth-change", handleAuthChange);
+      unsubscribeCart();
     };
   }, []);
 
   const links = [
     { href: "/", label: "Home" },
-    { href: "/shop", label: "Collections" },
+    { href: "/shop", label: "Shop" },
     { href: "/#about", label: "About" },
   ];
 
@@ -66,6 +72,10 @@ export default function Navbar() {
           <Link className="mobile-nav-link" href="/my-library" onClick={() => setMenuOpen(false)}>My library</Link>
         </nav>
         <div className="nav-actions">
+          <Link className="cart-link" href="/checkout" aria-label={`Cart with ${cartCount} books`}>
+            <ShoppingBag aria-hidden="true" />
+            {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+          </Link>
           <Link className="nav-library" href="/my-library">My library</Link>
           <Link className="nav-account" href="/my-library">
             {accountStatus === "signed-out" ? "Sign in" : "Account"}

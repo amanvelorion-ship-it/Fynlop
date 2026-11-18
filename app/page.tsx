@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
 import FeaturedCollections from "../components/FeaturedCollections";
+import FeaturedProducts from "../components/FeaturedProducts";
 
 export default function Home() {
   return (
@@ -14,11 +15,11 @@ export default function Home() {
             <h1><Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={1500} height={480} priority /></h1>
             <p className="hero-tagline">Stories Beyond Reality</p>
             <p className="hero-description">
-              Subscribe to ongoing story worlds and get every release in each collection as it arrives.
+              Subscribe to ongoing story worlds or buy a standalone book once. Find the way you want to read.
             </p>
             <div className="hero-actions">
-              <Link className="button button-gold" href="/shop">Explore collections <ArrowUpRight aria-hidden="true" size={16} /></Link>
-              <Link className="hero-secondary" href="/my-library">My subscriptions <ArrowRight aria-hidden="true" size={16} /></Link>
+              <Link className="button button-gold" href="/shop">Explore the shop <ArrowUpRight aria-hidden="true" size={16} /></Link>
+              <Link className="hero-secondary" href="/my-library">My library <ArrowRight aria-hidden="true" size={16} /></Link>
             </div>
           </div>
           <div className="hero-art" aria-hidden="true">
@@ -38,13 +39,26 @@ export default function Home() {
       <section className="page-width section" aria-labelledby="featured-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow"><span className="eyebrow-mark" /> THE FYNLOP EDIT</p>
+            <p className="eyebrow"><span className="eyebrow-mark" /> COLLECTION SUBSCRIPTIONS</p>
             <h2 id="featured-title">Worlds to <em>return to.</em></h2>
           </div>
           <Link className="text-link" href="/shop">Browse all collections <ArrowUpRight aria-hidden="true" size={16} /></Link>
         </div>
         <Suspense fallback={<p className="checkout-help">Loading the collection…</p>}>
           <FeaturedCollections />
+        </Suspense>
+      </section>
+
+      <section className="page-width section" aria-labelledby="books-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow"><span className="eyebrow-mark" /> ONE-TIME PURCHASES</p>
+            <h2 id="books-title">Books to <em>keep.</em></h2>
+          </div>
+          <Link className="text-link" href="/shop">Browse all books <ArrowUpRight aria-hidden="true" size={16} /></Link>
+        </div>
+        <Suspense fallback={<p className="checkout-help">Loading the books…</p>}>
+          <FeaturedProducts />
         </Suspense>
       </section>
 

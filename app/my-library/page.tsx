@@ -204,7 +204,7 @@ export default function MyLibraryPage() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow"><span className="eyebrow-mark" /> PREVIOUS PURCHASES</p>
-                  <h2>Legacy editions.</h2>
+                  <h2>Books you own.</h2>
                 </div>
               </div>
               <div className="library-list">

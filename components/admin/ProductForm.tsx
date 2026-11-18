@@ -42,7 +42,7 @@ export default function ProductForm() {
             <input name="previews" type="file" accept="image/jpeg,image/png,image/webp" multiple />
           </label>
         </div>
-        <p className="admin-muted">PDF files are stored privately and are only available through the verified purchase download flow.</p>
+        <p className="admin-muted">Set a one-time price. The book is added to a customer&apos;s library only after the payment is verified; its PDF stays private.</p>
       </div>
       {state.error && <p className="admin-error" role="alert">{state.error}</p>}
       {state.success && (

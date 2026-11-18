@@ -603,6 +603,96 @@ select:focus-visible {
   font-size: 9px;
 }
 
+.storefront-section + .storefront-section {
+  margin-top: 76px;
+}
+
+.storefront-section .section-heading {
+  margin-bottom: 24px;
+}
+
+.product-preview-image {
+  position: relative;
+  aspect-ratio: 1.45;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.standalone-detail-note {
+  margin: 0 0 90px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  color: #aaa6b4;
+  font-size: 10px;
+}
+
+.standalone-detail-note svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+}
+
+.checkout-book {
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.checkout-book-cover {
+  width: 58px;
+  height: 74px;
+  flex: 0 0 auto;
+  background-position: center;
+  background-size: cover;
+}
+
+.checkout-book-copy {
+  flex: 1;
+}
+
+.checkout-book-copy h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.checkout-book-copy p {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.checkout-book-copy strong {
+  color: var(--gold);
+  font-size: 11px;
+}
+
+.checkout-complete {
+  margin: 0 auto 100px;
+  max-width: 650px;
+  text-align: center;
+}
+
+.checkout-complete h2 {
+  margin-top: 0;
+  color: var(--gold);
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 36px;
+  font-weight: 400;
+}
+
+.checkout-complete .button {
+  margin-top: 16px;
+}
+
+.checkout-back-link {
+  margin-top: 16px;
+}
+
 .product-title {
   display: block;
   margin-top: 11px;

@@ -1,12 +1,16 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import CollectionCatalog from "../../components/CollectionCatalog";
+import StorefrontCatalog from "../../components/StorefrontCatalog";
 import { getPublishedCollections } from "../../lib/collection-catalog";
+import { getProducts } from "../../lib/products";
 
 async function ShopContent() {
   await connection();
-  const collections = await getPublishedCollections();
-  return <CollectionCatalog collections={collections} />;
+  const [collections, products] = await Promise.all([
+    getPublishedCollections(),
+    getProducts(),
+  ]);
+  return <StorefrontCatalog collections={collections} products={products} />;
 }
 
 export default function ShopPage() {
