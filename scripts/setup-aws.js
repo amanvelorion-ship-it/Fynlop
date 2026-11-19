@@ -92,7 +92,7 @@ async function ensureBucket() {
       CORSConfiguration: {
         CORSRules: [
           {
-            AllowedHeaders: ["content-type"],
+            AllowedHeaders: ["*"],
             AllowedMethods: ["PUT"],
             AllowedOrigins: ["*"],
             ExposeHeaders: ["ETag"],
