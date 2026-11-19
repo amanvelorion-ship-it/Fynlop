@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
-  CircleDollarSign,
+  IndianRupee,
   PackagePlus,
   ShoppingCart,
   Users,
@@ -12,16 +12,14 @@ import AdminShell from "../../../components/admin/AdminShell";
 import StatsCard from "../../../components/admin/StatsCard";
 import { fetchAdminOrders, fetchAdminProducts, fetchAdminUsers } from "../../../lib/admin-data";
 import { requireAdmin } from "../../../lib/auth";
-import { describeAdminRate, formatAdminMoney } from "../../../lib/currency";
-import { getLatestInrUsdRate } from "../../../lib/exchange-rate";
+import { formatAdminMoney } from "../../../lib/currency";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [orders, products, users, exchange] = await Promise.all([
+  const [orders, products, users] = await Promise.all([
     fetchAdminOrders(),
     fetchAdminProducts(),
     fetchAdminUsers(),
-    getLatestInrUsdRate(),
   ]);
   const paidOrders = orders.filter((order) => order.status === "paid");
   const revenue = paidOrders.reduce((sum, order) => sum + order.amount, 0);
@@ -42,11 +40,8 @@ export default async function AdminDashboardPage() {
         title="Dashboard"
         description="A snapshot of what is happening across your FYNLOP store."
       />
-      <p className="admin-muted" role={exchange.warning ? "alert" : "note"}>
-        {exchange.warning ?? describeAdminRate(exchange.rate)}
-      </p>
       <section className="admin-stats-grid" aria-label="Store statistics">
-        <StatsCard title="TOTAL REVENUE" value={formatAdminMoney(revenue, exchange.rate)} icon={CircleDollarSign} detail="USD equivalent from paid orders" />
+        <StatsCard title="TOTAL REVENUE" value={formatAdminMoney(revenue)} icon={IndianRupee} detail="INR from paid orders" />
         <StatsCard title="TOTAL ORDERS" value={orders.length.toLocaleString("en-IN")} icon={ShoppingCart} detail={`${paidOrders.length} paid`}/>
         <StatsCard title="TOTAL USERS" value={users.length.toLocaleString("en-IN")} icon={Users} detail="Registered accounts" />
         <StatsCard title="BEST SELLING COMIC" value={bestComic?.[0] ?? "No sales yet"} icon={BookOpen} detail={bestComic ? `${bestComic[1]} purchases` : "Comic sales will appear here"} />
@@ -66,7 +61,7 @@ export default async function AdminDashboardPage() {
                     <td><strong>{order.id.slice(0, 8)}</strong></td>
                     <td>{order.email}</td>
                     <td>{order.product_title}</td>
-                    <td>{formatAdminMoney(order.amount, exchange.rate)}</td>
+                    <td>{formatAdminMoney(order.amount)}</td>
                     <td><span className={`admin-badge admin-badge-${order.status}`}>{order.status === "created" ? "pending" : order.status}</span></td>
                   </tr>
                 ))}

@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -16,7 +15,14 @@ import {
   updateOrderStatus,
 } from "../../lib/dynamodb";
 import { setCognitoUserBlocked, signInWithCognito, getUserFromAccessToken } from "../../lib/cognito";
-import { deleteFiles, getPublicFileUrl, getUploadedFileKey, uploadFile } from "../../lib/s3";
+import {
+  deleteFiles,
+  getFileMetadata,
+  getPublicFileUrl,
+  getUploadedFileKey,
+  hasPdfHeader,
+} from "../../lib/s3";
+import { isValidProductId } from "../../lib/product-id";
 import { refundRazorpayPayment } from "../../lib/razorpay";
 import type { Product, ProductCategory } from "../../types";
 
@@ -73,7 +79,6 @@ export async function updateProduct(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "");
   const priceInr = Number(formData.get("price_inr"));
-  const priceUsd = Number(formData.get("price_usd"));
   const author = String(formData.get("author") ?? "").trim();
   const pages = Number(formData.get("pages"));
 
@@ -84,8 +89,6 @@ export async function updateProduct(formData: FormData) {
     !["Comics", "Books", "Manga"].includes(category) ||
     !Number.isFinite(priceInr) ||
     priceInr <= 0 ||
-    !Number.isFinite(priceUsd) ||
-    priceUsd <= 0 ||
     !Number.isInteger(pages) ||
     pages < 0
   ) {
@@ -101,7 +104,6 @@ export async function updateProduct(formData: FormData) {
       description,
       category: category as ProductCategory,
       price_inr: Math.round(priceInr),
-      price_usd: Number(priceUsd.toFixed(2)),
       author,
       pages,
     });
@@ -288,15 +290,16 @@ export async function createProduct(
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "");
   const priceInr = Number(formData.get("price_inr"));
-  const priceUsd = Number(formData.get("price_usd"));
   const author = String(formData.get("author") ?? "").trim();
   const pages = Number(formData.get("pages"));
   const featured = formData.get("featured") === "on";
-  const cover = formData.get("cover");
-  const pdf = formData.get("pdf");
-  const previews = formData.getAll("previews");
+  const productId = String(formData.get("product_id") ?? "");
+  const coverKey = String(formData.get("cover_key") ?? "");
+  const pdfKey = String(formData.get("pdf_key") ?? "");
+  const previewKeys = formData.getAll("preview_key").map(String);
 
   if (
+    !isValidProductId(productId) ||
     !title ||
     title.length > 100 ||
     !description ||
@@ -305,71 +308,58 @@ export async function createProduct(
     !["Comics", "Books", "Manga"].includes(category) ||
     !Number.isFinite(priceInr) ||
     priceInr <= 0 ||
-    !Number.isFinite(priceUsd) ||
-    priceUsd <= 0 ||
     !Number.isInteger(pages) ||
     pages < 1 ||
-    !(cover instanceof File) ||
-    cover.size === 0 ||
-    cover.size > 3 * 1024 * 1024 ||
-    !(pdf instanceof File) ||
-    pdf.size === 0 ||
-    pdf.size > 50 * 1024 * 1024 ||
-    !["image/jpeg", "image/png", "image/webp"].includes(cover.type) ||
-    pdf.type !== "application/pdf" ||
-    previews.length > 3 ||
-    previews.some(
-      (file) =>
-        !(file instanceof File) ||
-        (file.size > 0 &&
-          (file.size > 2 * 1024 * 1024 ||
-            !["image/jpeg", "image/png", "image/webp"].includes(file.type))),
+    !new RegExp(`^covers/${productId}/cover\\.(jpg|png|webp)$`).test(coverKey) ||
+    pdfKey !== `pdfs/${productId}/edition.pdf` ||
+    previewKeys.length > 3 ||
+    previewKeys.some(
+      (key, index) =>
+        !new RegExp(`^previews/${productId}/preview-${index + 1}\\.(jpg|png|webp)$`).test(key),
     )
   ) {
-    return { error: "Check required fields and uploads. Covers must be images under 3 MB, previews under 2 MB, and PDFs under 50 MB." };
-  }
-  if (new TextDecoder().decode(new Uint8Array(await pdf.slice(0, 5).arrayBuffer())) !== "%PDF-") {
-    return { error: "The selected digital edition is not a valid PDF file." };
+    return { error: "Check the product details and uploads, then try again." };
   }
 
-  const slug = title
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 70);
-  if (!slug) return { error: "The product title must contain letters or numbers." };
-
-  const id = `${slug}-${randomUUID().slice(0, 8)}`;
-  const extension = (type: string) => type.split("/")[1].replace("jpeg", "jpg");
-  const coverKey = `covers/${id}/cover.${extension(cover.type)}`;
-  const pdfKey = `pdfs/${id}/edition.pdf`;
-  const previewFiles = previews.filter(
-    (file): file is File => file instanceof File && file.size > 0,
-  );
-  const previewKeys = previewFiles.map(
-    (file, index) => `previews/${id}/preview-${index + 1}.${extension(file.type)}`,
-  );
-  const uploadedKeys: string[] = [];
+  const uploadedKeys = [coverKey, pdfKey, ...previewKeys];
 
   try {
-    await uploadFile(coverKey, cover, cover.type);
-    uploadedKeys.push(coverKey);
-    await uploadFile(pdfKey, pdf, "application/pdf");
-    uploadedKeys.push(pdfKey);
-    for (let index = 0; index < previewFiles.length; index += 1) {
-      await uploadFile(previewKeys[index], previewFiles[index], previewFiles[index].type);
-      uploadedKeys.push(previewKeys[index]);
+    const [coverUpload, pdfUpload, ...previewUploads] = await Promise.all(
+      uploadedKeys.map(getFileMetadata),
+    );
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (
+      !coverUpload.contentLength ||
+      coverUpload.contentLength > 3 * 1024 * 1024 ||
+      !allowedImageTypes.includes(coverUpload.contentType ?? "")
+    ) {
+      throw new Error("The cover upload is missing or exceeds the 3 MB image limit.");
+    }
+    if (
+      !pdfUpload.contentLength ||
+      pdfUpload.contentLength > 50 * 1024 * 1024 ||
+      pdfUpload.contentType !== "application/pdf" ||
+      !(await hasPdfHeader(pdfKey))
+    ) {
+      throw new Error("The PDF upload is missing, invalid, or exceeds the 50 MB limit.");
+    }
+    if (
+      previewUploads.some(
+        (upload) =>
+          !upload.contentLength ||
+          upload.contentLength > 2 * 1024 * 1024 ||
+          !allowedImageTypes.includes(upload.contentType ?? ""),
+      )
+    ) {
+      throw new Error("A preview upload is missing or exceeds the 2 MB image limit.");
     }
 
     const product: Product = {
-      id,
+      id: productId,
       title,
       description,
       category: category as ProductCategory,
       price_inr: Math.round(priceInr),
-      price_usd: Number(priceUsd.toFixed(2)),
       author,
       pages,
       featured,
@@ -383,6 +373,9 @@ export async function createProduct(
   } catch (error) {
     const message = awsErrorMessage(error, "The AWS request failed.");
     try {
+      if (await getProduct(productId)) {
+        return { error: `Product creation failed: ${message}. The product already exists, so its files were left untouched.` };
+      }
       await deleteFiles(uploadedKeys);
     } catch (cleanupError) {
       return {
@@ -395,5 +388,5 @@ export async function createProduct(
   revalidatePath("/admin/products");
   revalidatePath("/");
   revalidatePath("/shop");
-  return { success: `Created “${title}”.`, productId: id };
+  return { success: `Created “${title}”.`, productId };
 }

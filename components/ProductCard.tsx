@@ -39,7 +39,6 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="product-card-bottom">
           <div className="product-price">
             <strong>₹{product.price_inr.toLocaleString("en-IN")}</strong>
-            <span>${product.price_usd.toFixed(2)} USD</span>
           </div>
           <AddToCartButton productId={product.id} />
         </div>

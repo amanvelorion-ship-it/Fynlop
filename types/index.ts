@@ -6,7 +6,6 @@ export type Product = {
   description: string;
   cover_image_url: string;
   price_inr: number;
-  price_usd: number;
   category: ProductCategory;
   author: string;
   pages: number;

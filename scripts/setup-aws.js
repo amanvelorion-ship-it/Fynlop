@@ -17,6 +17,7 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 const {
   GetBucketPolicyCommand,
+  PutBucketCorsCommand,
   PutBucketPolicyCommand,
   PutPublicAccessBlockCommand,
   S3Client,
@@ -84,6 +85,24 @@ async function ensureBucket() {
       },
     }),
   );
+
+  await s3.send(
+    new PutBucketCorsCommand({
+      Bucket: bucketName,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedHeaders: ["content-type"],
+            AllowedMethods: ["PUT"],
+            AllowedOrigins: ["*"],
+            ExposeHeaders: ["ETag"],
+            MaxAgeSeconds: 3600,
+          },
+        ],
+      },
+    }),
+  );
+  console.log("✅ S3 CORS configured for signed browser uploads");
 
   let policy = { Version: "2012-10-17", Statement: [] };
   try {

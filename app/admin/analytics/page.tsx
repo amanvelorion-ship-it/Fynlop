@@ -3,15 +3,10 @@ import AdminShell from "../../../components/admin/AdminShell";
 import AnalyticsCharts from "../../../components/admin/AnalyticsCharts";
 import { fetchAdminOrders } from "../../../lib/admin-data";
 import { requireAdmin } from "../../../lib/auth";
-import { describeAdminRate } from "../../../lib/currency";
-import { getLatestInrUsdRate } from "../../../lib/exchange-rate";
 
 export default async function AdminAnalyticsPage() {
   await requireAdmin();
-  const [orders, exchange] = await Promise.all([
-    fetchAdminOrders(),
-    getLatestInrUsdRate(),
-  ]);
+  const orders = await fetchAdminOrders();
   const paid = orders.filter((order) => order.status === "paid");
   const productTotals = new Map<string, { count: number; revenue: number }>();
   const customerTotals = new Map<string, { count: number; revenue: number }>();
@@ -43,8 +38,6 @@ export default async function AdminAnalyticsPage() {
         orders={paid.map(({ amount, status, created_at }) => ({ amount, status, created_at }))}
         topProducts={topProducts}
         topCustomers={topCustomers}
-        rate={exchange.rate}
-        rateNotice={exchange.warning ?? describeAdminRate(exchange.rate)}
       />
     </AdminShell>
   );

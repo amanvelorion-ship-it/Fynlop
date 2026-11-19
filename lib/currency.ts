@@ -1,8 +1,3 @@
-export type InrUsdRate = {
-  usdPerInr: number;
-  date: string;
-};
-
 export function formatInrPaise(amountPaise: number): string {
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 0) {
     throw new Error("Collection prices must be a non-negative integer number of paise.");
@@ -12,26 +7,19 @@ export function formatInrPaise(amountPaise: number): string {
   return `₹${rupees.toLocaleString("en-IN")}.${String(paise).padStart(2, "0")}`;
 }
 
-export function formatAdminMoney(amountInr: number, rate: InrUsdRate | null): string {
-  if (!rate) {
-    return `INR ${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amountInr)}`;
-  }
-  return new Intl.NumberFormat("en-US", {
+export function formatAdminMoney(amountInr: number): string {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     maximumFractionDigits: 2,
-  }).format(amountInr * rate.usdPerInr);
+  }).format(amountInr);
 }
 
-export function formatAdminAxisMoney(amountInr: number, rate: InrUsdRate | null): string {
-  const amount = amountInr * (rate?.usdPerInr ?? 1);
-  const formatted = new Intl.NumberFormat("en-US", {
+export function formatAdminAxisMoney(amountInr: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     notation: "compact",
     maximumFractionDigits: 1,
-  }).format(amount);
-  return rate ? `$${formatted}` : `INR ${formatted}`;
-}
-
-export function describeAdminRate(rate: InrUsdRate): string {
-  return `Latest available FX rate: $1 = INR ${(1 / rate.usdPerInr).toFixed(2)} · ${rate.date}`;
+  }).format(amountInr);
 }

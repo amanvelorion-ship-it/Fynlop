@@ -6,11 +6,11 @@ A digital comics and books storefront built with Next.js, TypeScript, AWS, Razor
 
 1. Install the project dependencies with `npm install`.
 2. Keep the AWS and Razorpay credentials in the ignored `.env.local` file. The app uses `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_COGNITO_USER_POOL_ID`, `AWS_COGNITO_CLIENT_ID`, `AWS_S3_BUCKET`, `AWS_SES_FROM_EMAIL`, `ADMIN_EMAIL`, and the four `DYNAMODB_*_TABLE` values.
-3. Run `node scripts/setup-aws.js`. The script loads `.env.local`, creates or reuses the four DynamoDB tables, the S3 bucket, the Cognito pool/client, requests SES sender verification, and prints the AWS values for `.env.local`. It is safe to rerun.
+3. Run `node scripts/setup-aws.js`. The script loads `.env.local`, creates or reuses the four DynamoDB tables, the S3 bucket, the Cognito pool/client, configures S3 CORS for signed product uploads, requests SES sender verification, and prints the AWS values for `.env.local`. It is safe to rerun; rerun it to apply the CORS change to an existing bucket.
 4. Follow the SES verification email before sending store mail.
 5. Start the app with `npm run dev`. Register the `ADMIN_EMAIL` address at `/my-library`, verify it using the emailed code, then sign in to `/admin`.
 
-The setup script grants public object reads only for `covers/`, `previews/`, and `logos/`; uploaded PDFs remain private and are served through short-lived signed URLs after purchase verification. Products are stored in the products table, and purchase records are stored in the orders table.
+The setup script grants public object reads only for `covers/`, `previews/`, and `logos/`; uploaded PDFs remain private and are served through short-lived signed URLs after purchase verification. Admin product files upload directly from the browser to S3 using short-lived, authenticated presigned URLs, so large PDFs do not pass through the app server. Products are stored in the products table, and purchase records are stored in the orders table.
 
 ## Payments
 

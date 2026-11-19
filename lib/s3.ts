@@ -9,19 +9,37 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3, s3Bucket } from "./aws-config";
 
-export async function uploadFile(
-  key: string,
-  file: File,
-  contentType: string,
-): Promise<void> {
-  await s3.send(
+export async function createUploadUrl(key: string, contentType: string): Promise<string> {
+  return getSignedUrl(
+    s3,
     new PutObjectCommand({
       Bucket: s3Bucket,
       Key: key,
-      Body: Buffer.from(await file.arrayBuffer()),
       ContentType: contentType,
     }),
+    { expiresIn: 600 },
   );
+}
+
+export async function getFileMetadata(key: string): Promise<{
+  contentLength?: number;
+  contentType?: string;
+}> {
+  const result = await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: key }));
+  return { contentLength: result.ContentLength, contentType: result.ContentType };
+}
+
+export async function hasPdfHeader(key: string): Promise<boolean> {
+  const result = await s3.send(
+    new GetObjectCommand({
+      Bucket: s3Bucket,
+      Key: key,
+      Range: "bytes=0-4",
+    }),
+  );
+  if (!result.Body) return false;
+  const bytes = await result.Body.transformToByteArray();
+  return new TextDecoder().decode(bytes) === "%PDF-";
 }
 
 export async function deleteFile(key: string): Promise<void> {

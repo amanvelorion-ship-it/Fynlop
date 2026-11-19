@@ -33,6 +33,14 @@ function withoutKeys<T>(item: Record<string, unknown>): T {
   return value as T;
 }
 
+function withoutProductKeys(item: Record<string, unknown>): Product {
+  const value = { ...item };
+  delete value.PK;
+  delete value.SK;
+  delete value.price_usd;
+  return value as Product;
+}
+
 async function scanAll<T>(
   tableName: string,
   consistentRead = false,
@@ -70,7 +78,7 @@ export async function getProducts(): Promise<Product[]> {
         ExclusiveStartKey,
       }),
     );
-    products.push(...(result.Items || []).map((item) => withoutKeys<Product>(item)));
+    products.push(...(result.Items || []).map(withoutProductKeys));
     ExclusiveStartKey = result.LastEvaluatedKey;
   } while (ExclusiveStartKey);
   return products.sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -83,14 +91,16 @@ export async function getProduct(id: string): Promise<Product | null> {
       Key: productKey(id),
     }),
   );
-  return result.Item ? withoutKeys<Product>(result.Item) : null;
+  return result.Item ? withoutProductKeys(result.Item) : null;
 }
 
 export async function putProduct(product: Product, createOnly = false): Promise<void> {
+  const item = { ...product } as Product & { price_usd?: unknown };
+  delete item.price_usd;
   await dynamo.send(
     new PutCommand({
       TableName: tableNames.products,
-      Item: { ...product, ...productKey(product.id) },
+      Item: { ...item, ...productKey(product.id) },
       ...(createOnly ? { ConditionExpression: "attribute_not_exists(PK)" } : {}),
     }),
   );

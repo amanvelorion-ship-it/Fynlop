@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { setUserBlocked } from "../../app/admin/actions";
-import { formatAdminMoney, type InrUsdRate } from "../../lib/currency";
+import { formatAdminMoney } from "../../lib/currency";
 
 export type AdminUserRow = {
   id: string;
@@ -16,12 +16,8 @@ export type AdminUserRow = {
 
 export default function UsersTable({
   users,
-  rate,
-  rateNotice,
 }: {
   users: AdminUserRow[];
-  rate: InrUsdRate | null;
-  rateNotice: string;
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AdminUserRow | null>(null);
@@ -42,7 +38,6 @@ export default function UsersTable({
   return (
     <>
       <div className="admin-toolbar">
-        <span className="admin-muted" role={rate ? "note" : "alert"}>{rateNotice}</span>
         <input className="admin-input" placeholder="Search by email..." value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search users by email" />
       </div>
       {message && <p className={message.startsWith("Could") ? "admin-error" : "admin-message"} role="status">{message}</p>}
@@ -77,7 +72,7 @@ export default function UsersTable({
                 {selected.history.map((item, index) => (
                   <div className="admin-list-row" key={`${item.product}-${index}`}>
                     <span>{item.product}<br /><small>{new Date(item.date).toLocaleDateString("en-IN")} · {item.status}</small></span>
-                    <strong>{formatAdminMoney(item.amount, rate)}</strong>
+                    <strong>{formatAdminMoney(item.amount)}</strong>
                   </div>
                 ))}
               </div>
