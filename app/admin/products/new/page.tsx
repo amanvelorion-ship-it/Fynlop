@@ -12,7 +12,7 @@ export default async function NewStandaloneProductPage() {
       <AdminPageHeader
         eyebrow="ONE-TIME SALES"
         title="Add a standalone book"
-        description="Upload a complete book for one-time purchase. Collection releases are managed separately."
+        description="Upload a complete book for one-time purchase."
         action={<Link className="admin-button" href="/admin/products"><ArrowLeft size={15} /> Books</Link>}
       />
       <ProductForm />

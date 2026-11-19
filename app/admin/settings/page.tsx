@@ -14,8 +14,6 @@ export default async function AdminSettingsPage() {
   const testSecretConfigured = Boolean(process.env.RAZORPAY_TEST_KEY_SECRET);
   const liveKeyId = process.env.RAZORPAY_LIVE_KEY_ID ?? null;
   const liveSecretConfigured = Boolean(process.env.RAZORPAY_LIVE_KEY_SECRET);
-  const testWebhookConfigured = Boolean(process.env.RAZORPAY_TEST_WEBHOOK_SECRET);
-  const liveWebhookConfigured = Boolean(process.env.RAZORPAY_LIVE_WEBHOOK_SECRET);
   return (
     <AdminShell>
       <AdminPageHeader eyebrow="CONFIGURATION" title="Settings" description="Manage your storefront identity and payment behavior." />
@@ -27,8 +25,6 @@ export default async function AdminSettingsPage() {
         testSecretConfigured={testSecretConfigured}
         liveKeyId={liveKeyId}
         liveSecretConfigured={liveSecretConfigured}
-        testWebhookConfigured={testWebhookConfigured}
-        liveWebhookConfigured={liveWebhookConfigured}
       />
     </AdminShell>
   );

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  BookOpen,
   ExternalLink,
   LayoutDashboard,
   LogOut,
@@ -18,7 +17,6 @@ import { signOutAdmin } from "../../app/admin/actions";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/collections", label: "Collections", icon: BookOpen },
   { href: "/admin/products", label: "Standalone books", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Users", icon: Users },
