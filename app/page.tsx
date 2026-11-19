@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
-import FeaturedCollections from "../components/FeaturedCollections";
 import FeaturedProducts from "../components/FeaturedProducts";
 
 export default function Home() {
@@ -15,7 +14,7 @@ export default function Home() {
             <h1><Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={1500} height={480} priority /></h1>
             <p className="hero-tagline">Stories Beyond Reality</p>
             <p className="hero-description">
-              Subscribe to ongoing story worlds or buy a standalone book once. Find the way you want to read.
+              Discover original comics and books, and keep the stories that stay with you.
             </p>
             <div className="hero-actions">
               <Link className="button button-gold" href="/shop">Explore the shop <ArrowUpRight aria-hidden="true" size={16} /></Link>
@@ -34,19 +33,6 @@ export default function Home() {
           <span>INDEPENDENT WORLDS. INFINITE WONDER.</span>
           <span>SCROLL TO EXPLORE <ArrowDown size={12} /></span>
         </div>
-      </section>
-
-      <section className="page-width section" aria-labelledby="featured-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow"><span className="eyebrow-mark" /> COLLECTION SUBSCRIPTIONS</p>
-            <h2 id="featured-title">Worlds to <em>return to.</em></h2>
-          </div>
-          <Link className="text-link" href="/shop">Browse all collections <ArrowUpRight aria-hidden="true" size={16} /></Link>
-        </div>
-        <Suspense fallback={<p className="checkout-help">Loading the collection…</p>}>
-          <FeaturedCollections />
-        </Suspense>
       </section>
 
       <section className="page-width section" aria-labelledby="books-title">

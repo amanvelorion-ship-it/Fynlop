@@ -2,7 +2,6 @@
 
 import { ArrowDownToLine, ArrowRight, LoaderCircle, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
-import MyCollectionSubscriptions from "../../components/MyCollectionSubscriptions";
 import type { Product } from "../../types";
 
 type Account = { id: string; email: string };
@@ -198,7 +197,6 @@ export default function MyLibraryPage() {
           </div>
           {error && <p className="checkout-error" role="alert">{error}</p>}
           {notice && <p className="checkout-success" role="status">{notice}</p>}
-          <MyCollectionSubscriptions />
           {products.length ? (
             <>
               <div className="section-heading">
