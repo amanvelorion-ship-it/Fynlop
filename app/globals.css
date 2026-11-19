@@ -623,7 +623,7 @@ select:focus-visible {
 
 .product-preview-image {
   position: relative;
-  aspect-ratio: 1.45;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--surface);

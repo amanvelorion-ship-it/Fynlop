@@ -58,6 +58,7 @@ async function ProductDetails({ id }: { id: string }) {
                   alt={`${product.title} preview ${index + 1}`}
                   fill
                   sizes="(max-width: 700px) 100vw, 33vw"
+                  style={{ objectFit: "contain" }}
                   unoptimized
                 />
               </div>

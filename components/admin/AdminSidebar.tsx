@@ -30,7 +30,7 @@ export default function AdminSidebar({ adminEmail }: { adminEmail: string }) {
   return (
     <aside className="admin-sidebar">
       <Link href="/admin/dashboard" className="admin-sidebar-brand" aria-label="FYNLOP admin dashboard">
-        <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} />
+        <Image src="/fynlop-logo.png" alt="FYNLOP" width={2146} height={733} />
       </Link>
       <p className="admin-sidebar-label">WORKSPACE</p>
       <nav className="admin-nav" aria-label="Admin navigation">

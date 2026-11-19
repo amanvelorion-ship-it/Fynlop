@@ -74,7 +74,7 @@ export default function Navbar() {
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
         <div className="nav-inner">
           <Link className="brand" href="/" aria-label="Fynlop home">
-            <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} priority />
+            <Image src="/fynlop-logo.png" alt="FYNLOP" width={2146} height={733} priority />
           </Link>
           <nav className={`nav-links${menuOpen ? " nav-open" : ""}`} aria-label="Main navigation">
             {links.map((link) => (

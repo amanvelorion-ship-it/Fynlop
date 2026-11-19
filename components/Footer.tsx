@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="footer-main">
         <div>
           <Link className="brand footer-brand" href="/">
-            <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={180} height={72} />
+            <Image src="/fynlop-logo.png" alt="FYNLOP" width={2146} height={733} />
           </Link>
           <p>Stories Beyond Reality.<br />Worlds worth getting lost in.</p>
         </div>

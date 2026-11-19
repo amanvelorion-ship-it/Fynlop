@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
     <main className="admin-login-page">
       <section className="admin-login-card">
         <Link className="admin-brand" href="/" aria-label="FYNLOP home">
-          <Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={220} height={90} priority />
+          <Image src="/fynlop-logo.png" alt="FYNLOP" width={2146} height={733} priority />
         </Link>
         <p className="admin-eyebrow">STORIES BEYOND REALITY</p>
         <h1>Admin sign in</h1>

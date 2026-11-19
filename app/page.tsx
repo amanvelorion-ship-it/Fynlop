@@ -11,7 +11,7 @@ export default function Home() {
         <div className="hero-content">
           <div className="hero-copy">
             <p className="eyebrow"><span className="eyebrow-mark" /> AN UNIVERSE OF STORIES</p>
-            <h1><Image src="/FYNLOP_ LOGO.png" alt="FYNLOP" width={1500} height={480} priority /></h1>
+            <h1><Image src="/fynlop-logo.png" alt="FYNLOP" width={2146} height={733} priority /></h1>
             <p className="hero-tagline">Stories Beyond Reality</p>
             <p className="hero-description">
               Discover original comics and books, and keep the stories that stay with you.

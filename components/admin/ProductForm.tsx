@@ -32,13 +32,13 @@ export default function ProductForm() {
       <div className="admin-setting-panel">
         <h2>Cover and digital edition</h2>
         <div className="admin-form-grid">
-          <label className="admin-upload">Cover image (JPG, PNG, WebP · max 3 MB)
+          <label className="admin-upload">Cover image (JPG, PNG, WebP · 1600 × 2400 px recommended · max 3 MB)
             <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" required />
           </label>
           <label className="admin-upload">PDF edition (max 50 MB)
             <input name="pdf" type="file" accept="application/pdf,.pdf" required />
           </label>
-          <label className="admin-upload wide">Preview images (up to 3 · max 2 MB each)
+          <label className="admin-upload wide">Preview pages (up to 3 · portrait 1200 × 1800 px recommended · max 2 MB each)
             <input name="previews" type="file" accept="image/jpeg,image/png,image/webp" multiple />
           </label>
         </div>
